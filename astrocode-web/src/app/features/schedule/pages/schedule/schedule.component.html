@@ -6,11 +6,11 @@
     </div>
 
     <nav class="top-nav" aria-label="Navegacao principal">
-      <a class="nav-link" routerLink="/dashboard">
+      <a class="nav-link" [routerLink]="(user$ | async)?.accountType === 'PROVIDER' ? '/provider-dashboard' : '/dashboard'">
         <mat-icon>dashboard</mat-icon>
         Dashboard
       </a>
-      <a class="nav-link" routerLink="/services">
+      <a class="nav-link" [routerLink]="(user$ | async)?.accountType === 'PROVIDER' ? '/provider-services' : '/services'">
         <mat-icon>work_outline</mat-icon>
         Servicos
       </a>
@@ -46,7 +46,10 @@
         <h1>Meus Agendamentos</h1>
         <p>Gerencie seus agendamentos e pagamentos</p>
       </div>
-      <button class="new-booking-button" mat-flat-button routerLink="/services">
+      <button
+        class="new-booking-button"
+        mat-flat-button
+        [routerLink]="(user$ | async)?.accountType === 'PROVIDER' ? '/provider-services' : '/services'">
         <mat-icon>add</mat-icon>
         Novo Agendamento
       </button>

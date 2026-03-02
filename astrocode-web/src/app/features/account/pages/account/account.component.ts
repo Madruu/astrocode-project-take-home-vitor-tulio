@@ -110,6 +110,28 @@ export class AccountComponent {
           return;
         }
 
+        if (result.paymentMethod === 'credit' || result.paymentMethod === 'debit') {
+          this.walletApiService
+            .deposit$(result.amount)
+            .pipe(take(1))
+            .subscribe({
+              next: () => {
+                this.walletApiService.refresh();
+                this.snackBar.open('Pagamento com cartao confirmado no modo de teste.', 'Fechar', {
+                  duration: 3200,
+                });
+              },
+              error: (error: unknown) => {
+                const message =
+                  error instanceof Error
+                    ? error.message
+                    : 'Nao foi possivel processar o pagamento com cartao.';
+                this.snackBar.open(message, 'Fechar', { duration: 3500 });
+              },
+            });
+          return;
+        }
+
         this.walletApiService
           .createMercadoPagoCheckout$(result.amount)
           .pipe(take(1))

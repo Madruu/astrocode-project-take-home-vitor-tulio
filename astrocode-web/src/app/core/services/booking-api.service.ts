@@ -9,6 +9,11 @@ export interface ApiBooking {
   scheduledDate: string;
   status: string;
   paid: boolean;
+  user?: {
+    id: number;
+    name: string;
+    email?: string;
+  };
   task?: {
     id: number;
     title: string;

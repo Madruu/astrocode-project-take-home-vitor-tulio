@@ -39,10 +39,13 @@ export class BookingController {
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Get all bookings' })
   getBookings(
-    @Req() req: Request & { user: { userId: number } },
+    @Req() req: Request & { user: { userId: number; accountType?: string } },
   ): Promise<Booking[]> {
     try {
-      return this.bookingService.getBookings(req.user.userId);
+      return this.bookingService.getBookings(
+        req.user.userId,
+        req.user.accountType,
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }

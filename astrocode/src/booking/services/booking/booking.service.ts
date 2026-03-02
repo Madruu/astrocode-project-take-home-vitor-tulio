@@ -76,10 +76,13 @@ export class BookingService {
     });
   }
 
-  async getBookings(userId: number): Promise<Booking[]> {
+  async getBookings(userId: number, accountType?: string): Promise<Booking[]> {
     const foundBookings = await this.bookingRepository.find({
-      where: { user: { id: userId } },
-      relations: ['user', 'task'],
+      where:
+        accountType === 'PROVIDER'
+          ? { task: { provider: { id: userId } } }
+          : { user: { id: userId } },
+      relations: ['user', 'task', 'task.provider'],
     });
     if (!foundBookings) {
       throw new NotFoundException('Bookings not found');

@@ -137,41 +137,73 @@
   margin-right: 0.2rem;
 }
 
+.form-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 19, 43, 0.38);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 1000;
+}
+
 .service-form-card {
-  border-radius: 14px;
-  border: 1px solid #dbe6ef;
-  background: #ffffff;
-  padding: 1rem 1.1rem;
-  box-shadow: none;
+  width: min(560px, 100%);
+  border-radius: 16px;
+  border: 1px solid #c9e8d8;
+  background: #f7fffb;
+  padding: 1.15rem 1.2rem;
+  box-shadow: 0 20px 48px rgba(11, 19, 43, 0.2);
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .form-header h2 {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.7rem;
   color: #0b132b;
 }
 
 .form-header p {
   margin: 0.35rem 0 0;
-  color: #475569;
+  color: #406b58;
 }
 
 .service-form {
-  margin-top: 1rem;
+  margin-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.service-form mat-form-field {
+  width: 100%;
+}
+
+.form-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(170px, 1fr));
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
   gap: 0.8rem;
 }
 
 .form-actions {
-  grid-column: 1 / -1;
   display: flex;
   justify-content: flex-end;
   gap: 0.6rem;
+  margin-top: 0.45rem;
 }
 
 .form-actions button {
   border-radius: 9px;
+}
+
+.form-actions button[mat-flat-button] {
+  background: #22a76f;
+  color: #ffffff;
 }
 
 .services-grid {
@@ -297,7 +329,7 @@
     width: fit-content;
   }
 
-  .service-form {
+  .form-row {
     grid-template-columns: 1fr;
   }
 }

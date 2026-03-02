@@ -48,6 +48,9 @@ export class CalendarComponent {
     const daySet = new Set<number>();
 
     for (const booking of this.bookings() ?? []) {
+      if (booking.status !== 'confirmed') {
+        continue;
+      }
       const bookingDate = new Date(booking.startAt);
       if (bookingDate.getMonth() === currentMonth && bookingDate.getFullYear() === currentYear) {
         daySet.add(bookingDate.getDate());
@@ -99,6 +102,7 @@ export class CalendarComponent {
     }
 
     return (this.bookings() ?? [])
+      .filter((booking) => booking.status === 'confirmed')
       .filter((booking) => this.isSameDay(new Date(booking.startAt), selectedDate))
       .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
   });

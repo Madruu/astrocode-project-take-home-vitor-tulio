@@ -169,7 +169,7 @@ export class BookingService {
     const isCancelled = apiBooking.status?.toLowerCase() === 'cancelled';
     return {
       id: String(apiBooking.id),
-      clientName: fallbackClientName,
+      clientName: apiBooking.user?.name ?? fallbackClientName,
       userId: '',
       serviceId: String(apiBooking.task?.id ?? ''),
       serviceName: apiBooking.task?.title ?? 'Servico',

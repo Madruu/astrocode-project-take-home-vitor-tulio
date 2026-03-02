@@ -62,6 +62,7 @@ export class ProviderServicesComponent implements OnInit {
 
   readonly serviceForm = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
+    description: [''],
     durationMinutes: [30, [Validators.required, Validators.min(10)]],
     price: [50, [Validators.required, Validators.min(1)]],
   });
@@ -75,6 +76,7 @@ export class ProviderServicesComponent implements OnInit {
     this.formVisible.set(true);
     this.serviceForm.reset({
       name: '',
+      description: '',
       durationMinutes: 30,
       price: 50,
     });
@@ -85,6 +87,7 @@ export class ProviderServicesComponent implements OnInit {
     this.formVisible.set(true);
     this.serviceForm.reset({
       name: service.title,
+      description: service.description,
       durationMinutes: service.durationMinutes,
       price: service.price,
     });
@@ -95,6 +98,7 @@ export class ProviderServicesComponent implements OnInit {
     this.editingServiceId.set(null);
     this.serviceForm.reset({
       name: '',
+      description: '',
       durationMinutes: 30,
       price: 50,
     });
@@ -111,7 +115,9 @@ export class ProviderServicesComponent implements OnInit {
       name: payload.name?.trim() ?? '',
       durationMinutes: Number(payload.durationMinutes),
       price: Number(payload.price),
-      description: `Atendimento de ${Number(payload.durationMinutes)} minutos para ${(payload.name ?? '').toLowerCase()}.`,
+      description:
+        payload.description?.trim() ||
+        `Atendimento de ${Number(payload.durationMinutes)} minutos para ${(payload.name ?? '').toLowerCase()}.`,
     };
 
     this.saving.set(true);

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -42,6 +43,8 @@ export interface ProcessBookingPaymentInput {
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
+
   constructor(
     @InjectRepository(Payment)
     private paymentRepository: Repository<Payment>,
@@ -50,6 +53,37 @@ export class PaymentService {
     private userRepository: Repository<User>,
     private configService: ConfigService,
   ) {}
+
+  private logMercadoPagoError(
+    operation: 'create_checkout_preference' | 'fetch_payment',
+    context: Record<string, unknown>,
+    error: unknown,
+  ): void {
+    const maybeError = error as {
+      message?: string;
+      status?: number;
+      code?: string;
+      cause?: unknown;
+    };
+    const cause =
+      maybeError?.cause && typeof maybeError.cause === 'object'
+        ? (maybeError.cause as Record<string, unknown>)
+        : undefined;
+
+    this.logger.error(
+      `Mercado Pago operation failed: ${operation}`,
+      JSON.stringify({
+        operation,
+        ...context,
+        status: maybeError?.status ?? cause?.status,
+        code: maybeError?.code ?? cause?.code,
+        blocked_by: cause?.blocked_by,
+        message:
+          maybeError?.message ??
+          (typeof cause?.message === 'string' ? cause.message : undefined),
+      }),
+    );
+  }
 
   async processBookingPayment({
     manager,
@@ -264,36 +298,56 @@ export class PaymentService {
     const frontUrl =
       this.configService.get<string>('MP_FRONTEND_URL') ??
       'http://localhost:4200/account';
+    const isTestMode =
+      this.configService.get<string>('MP_TEST_MODE')?.toLowerCase() === 'true';
     const notificationUrl =
       this.configService.get<string>('MP_NOTIFICATION_URL') ?? undefined;
     const externalReference = `wallet_deposit:${paymentRecord.id}:user:${user.id}`;
 
     const client = new MercadoPagoConfig({ accessToken });
     const preferenceClient = new Preference(client);
-    const preference = await preferenceClient.create({
-      body: {
-        items: [
-          {
-            id: `wallet-deposit-${paymentRecord.id}`,
-            title: `Deposito carteira Astrocode - Usuario ${user.id}`,
-            quantity: 1,
-            currency_id: currency,
-            unit_price: amount,
+    let preference;
+    try {
+      preference = await preferenceClient.create({
+        body: {
+          items: [
+            {
+              id: `wallet-deposit-${paymentRecord.id}`,
+              title: `Deposito carteira Astrocode - Usuario ${user.id}`,
+              quantity: 1,
+              currency_id: currency,
+              unit_price: amount,
+            },
+          ],
+          ...(isTestMode
+            ? {}
+            : {
+                payer: {
+                  email: user.email,
+                },
+              }),
+          external_reference: externalReference,
+          notification_url: notificationUrl,
+          back_urls: {
+            success: `${frontUrl}?source=mercado_pago`,
+            failure: `${frontUrl}?source=mercado_pago`,
+            pending: `${frontUrl}?source=mercado_pago`,
           },
-        ],
-        payer: {
-          email: user.email,
+          auto_return: 'approved',
         },
-        external_reference: externalReference,
-        notification_url: notificationUrl,
-        back_urls: {
-          success: `${frontUrl}?source=mercado_pago`,
-          failure: `${frontUrl}?source=mercado_pago`,
-          pending: `${frontUrl}?source=mercado_pago`,
+      });
+    } catch (error) {
+      this.logMercadoPagoError(
+        'create_checkout_preference',
+        {
+          userId,
+          paymentRecordId: paymentRecord.id,
+          externalReference,
         },
-        auto_return: 'approved',
-      },
-    });
+        error,
+      );
+      throw error;
+    }
 
     paymentRecord.reference = preference.id ?? paymentRecord.reference;
     await this.paymentRepository.save(paymentRecord);
@@ -322,9 +376,23 @@ export class PaymentService {
 
     const client = new MercadoPagoConfig({ accessToken });
     const paymentClient = new MercadoPagoPayment(client);
-    const mercadoPagoPayment = await paymentClient.get({
-      id: input.paymentId,
-    });
+    let mercadoPagoPayment;
+    try {
+      mercadoPagoPayment = await paymentClient.get({
+        id: input.paymentId,
+      });
+    } catch (error) {
+      this.logMercadoPagoError(
+        'fetch_payment',
+        {
+          userId,
+          paymentId: input.paymentId,
+          externalReference: input.externalReference,
+        },
+        error,
+      );
+      throw error;
+    }
 
     const status = mercadoPagoPayment.status?.toLowerCase();
     if (status !== 'approved') {

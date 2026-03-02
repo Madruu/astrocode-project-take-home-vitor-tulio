@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { providerOnlyGuard, userOnlyGuard } from './core/guards/account-type.guard';
 
 export const routes: Routes = [
   {
@@ -20,13 +21,13 @@ export const routes: Routes = [
   },
   {
     path: 'dashboard',
-    canActivate: [authGuard],
+    canActivate: [authGuard, userOnlyGuard],
     loadComponent: () =>
       import('./features/dashboard/pages/dashboard/dashboard.component').then((m) => m.DashboardComponent),
   },
   {
     path: 'provider-dashboard',
-    canActivate: [authGuard],
+    canActivate: [authGuard, providerOnlyGuard],
     loadComponent: () =>
       import('./features/dashboard/pages/provider-dashboard/provider-dashboard.component').then(
         (m) => m.ProviderDashboardComponent
@@ -34,13 +35,13 @@ export const routes: Routes = [
   },
   {
     path: 'services',
-    canActivate: [authGuard],
+    canActivate: [authGuard, userOnlyGuard],
     loadComponent: () =>
       import('./features/services/pages/services/services.component').then((m) => m.ServicesComponent),
   },
   {
     path: 'provider-services',
-    canActivate: [authGuard],
+    canActivate: [authGuard, providerOnlyGuard],
     loadComponent: () =>
       import('./features/services/pages/provider-services/provider-services.component').then(
         (m) => m.ProviderServicesComponent
@@ -48,7 +49,7 @@ export const routes: Routes = [
   },
   {
     path: 'provider-payments',
-    canActivate: [authGuard],
+    canActivate: [authGuard, providerOnlyGuard],
     loadComponent: () =>
       import('./features/payments/pages/provider-payments/provider-payments.component').then(
         (m) => m.ProviderPaymentsComponent
