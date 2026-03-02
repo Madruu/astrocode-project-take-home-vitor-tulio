@@ -26,9 +26,16 @@ export class BookingController {
   @HttpCode(201)
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Create a new booking' })
-  create(@Body() booking: CreateBookingDto): Promise<Booking> {
+  create(
+    @Req() req: Request & { user: { userId: number; accountType?: string } },
+    @Body() booking: CreateBookingDto,
+  ): Promise<Booking> {
     try {
-      return this.bookingService.createBooking(booking);
+      return this.bookingService.createBooking(
+        booking,
+        req.user.userId,
+        req.user.accountType,
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -55,9 +62,16 @@ export class BookingController {
   @HttpCode(200)
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Cancel a booking' })
-  cancelBooking(@Body() cancelBookingDto: CancelBookingDto): Promise<Booking> {
+  cancelBooking(
+    @Req() req: Request & { user: { userId: number; accountType?: string } },
+    @Body() cancelBookingDto: CancelBookingDto,
+  ): Promise<Booking> {
     try {
-      return this.bookingService.cancelBooking(cancelBookingDto);
+      return this.bookingService.cancelBooking(
+        cancelBookingDto,
+        req.user.userId,
+        req.user.accountType,
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }

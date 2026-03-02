@@ -112,19 +112,19 @@ export class PaymentService {
       amount: taskPrice,
       currency: 'BRL',
       type: 'BOOKING_CHARGE',
-      status: paymentMethod === 'wallet' ? 'COMPLETED' : 'PENDING',
+      status: 'COMPLETED',
       reference: `BOOKING-${task.id}-${scheduledDate.getTime()}`,
       description:
         paymentMethod === 'wallet'
           ? `Pagamento do agendamento para ${task.title}`
-          : `Cobranca pendente do agendamento para ${task.title}`,
+          : `Pagamento confirmado automaticamente para ${task.title}`,
       user,
     });
 
     const savedPayment = await manager.save(payment);
 
     return {
-      paid: paymentMethod === 'wallet',
+      paid: true,
       payment: savedPayment,
     };
   }
@@ -509,7 +509,7 @@ export class PaymentService {
         task,
         user,
         scheduledDate: new Date(),
-        status: 'booked',
+        status: 'CONFIRMED',
         paid: true,
       });
       return manager.save(booking);

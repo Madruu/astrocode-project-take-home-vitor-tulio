@@ -96,18 +96,29 @@ export class ScheduleComponent {
   }
 
   canCancel(booking: Booking): boolean {
-    return booking.status === 'confirmed' && new Date(booking.startAt).getTime() > Date.now();
+    return (
+      (booking.status === 'confirmed' || booking.status === 'booked') &&
+      new Date(booking.startAt).getTime() > Date.now()
+    );
   }
 
   private buildKanbanColumns(bookings: Booking[]): KanbanColumnVm[] {
     const now = Date.now();
 
     const ativos = bookings
-      .filter((booking) => booking.status === 'confirmed' && new Date(booking.startAt).getTime() >= now)
+      .filter(
+        (booking) =>
+          (booking.status === 'confirmed' || booking.status === 'booked') &&
+          new Date(booking.startAt).getTime() >= now
+      )
       .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
 
     const concluidos = bookings
-      .filter((booking) => booking.status === 'confirmed' && new Date(booking.startAt).getTime() < now)
+      .filter(
+        (booking) =>
+          (booking.status === 'confirmed' || booking.status === 'booked') &&
+          new Date(booking.startAt).getTime() < now
+      )
       .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
 
     const cancelados = bookings

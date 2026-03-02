@@ -48,7 +48,7 @@ export class CalendarComponent {
     const daySet = new Set<number>();
 
     for (const booking of this.bookings() ?? []) {
-      if (booking.status !== 'confirmed') {
+      if (booking.status === 'cancelled') {
         continue;
       }
       const bookingDate = new Date(booking.startAt);
@@ -102,7 +102,7 @@ export class CalendarComponent {
     }
 
     return (this.bookings() ?? [])
-      .filter((booking) => booking.status === 'confirmed')
+      .filter((booking) => booking.status !== 'cancelled')
       .filter((booking) => this.isSameDay(new Date(booking.startAt), selectedDate))
       .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
   });
@@ -115,7 +115,7 @@ export class CalendarComponent {
       return bookingDate.getMonth() === currentMonth && bookingDate.getFullYear() === currentYear;
     });
 
-    const confirmed = monthBookings.filter((booking) => booking.status === 'confirmed');
+    const confirmed = monthBookings.filter((booking) => booking.status !== 'cancelled');
     const cancelled = monthBookings.filter((booking) => booking.status === 'cancelled');
     const paid = confirmed.filter((booking) => !!booking.paymentTransactionId);
     const totalSpent = confirmed.reduce((acc, booking) => acc + booking.amount, 0);

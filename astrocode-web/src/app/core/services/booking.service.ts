@@ -11,7 +11,7 @@ export interface ServiceOption {
   price: number;
 }
 
-export type BookingStatus = 'confirmed' | 'cancelled';
+export type BookingStatus = 'booked' | 'confirmed' | 'cancelled';
 
 export interface Booking {
   id: string;
@@ -113,7 +113,12 @@ export class BookingService {
 
   getUpcomingBookings$(): Observable<Booking[]> {
     return this.getBookings$().pipe(
-      map((bookings) => bookings.filter((booking) => booking.status === 'confirmed')),
+      map((bookings) =>
+        bookings.filter(
+          (booking) =>
+            booking.status === 'confirmed' || booking.status === 'booked'
+        )
+      ),
       map((bookings) => bookings.filter((booking) => new Date(booking.startAt).getTime() >= Date.now())),
       map((bookings) => bookings.slice(0, 8))
     );
@@ -166,7 +171,14 @@ export class BookingService {
   }
 
   private toUiBooking(apiBooking: ApiBooking, fallbackClientName = 'Cliente'): Booking {
-    const isCancelled = apiBooking.status?.toLowerCase() === 'cancelled';
+    const normalizedStatus = apiBooking.status?.toLowerCase();
+    const uiStatus: BookingStatus =
+      normalizedStatus === 'cancelled'
+        ? 'cancelled'
+        : normalizedStatus === 'booked'
+          ? 'booked'
+          : 'confirmed';
+    const isCancelled = uiStatus === 'cancelled';
     return {
       id: String(apiBooking.id),
       clientName: apiBooking.user?.name ?? fallbackClientName,
@@ -175,7 +187,7 @@ export class BookingService {
       serviceName: apiBooking.task?.title ?? 'Servico',
       startAt: apiBooking.scheduledDate,
       amount: Number(apiBooking.task?.price ?? 0),
-      status: isCancelled ? 'cancelled' : 'confirmed',
+      status: uiStatus,
       cancelledAt: isCancelled ? new Date().toISOString() : undefined,
       paymentTransactionId: apiBooking.paid ? `paid-${apiBooking.id}` : undefined,
     };
