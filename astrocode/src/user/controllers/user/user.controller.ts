@@ -66,23 +66,4 @@ export class UserController {
       throw new BadRequestException(error.message);
     }
   }
-
-  @Post('add-money/:id')
-  @HttpCode(200)
-  @UseGuards(AuthGuard('jwt'))
-  @ApiOperation({ summary: 'Add money to a user' })
-  addMoney(
-    @Body('amount') amount: string | number,
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<User> {
-    try {
-      const parsedAmount = Number(amount);
-      if (!Number.isFinite(parsedAmount)) {
-        throw new BadRequestException('Amount is required');
-      }
-      return this.userService.addMoneyToUserBalance(id, parsedAmount);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
-  }
 }

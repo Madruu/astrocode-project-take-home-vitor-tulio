@@ -3,18 +3,22 @@ import { Component, DestroyRef, Inject, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { catchError, map, of, startWith, switchMap } from 'rxjs';
+import { catchError, map, of, startWith, switchMap, take } from 'rxjs';
 
 import { Booking } from '../../../../core/services/booking.service';
 import { ApiBooking, BookingApiService } from '../../../../core/services/booking-api.service';
 import { ProviderTask, ProviderTaskApiService } from '../../../../core/services/provider-task-api.service';
 import { ScheduleService } from '../../../../core/services/schedule.service';
+import {
+  DirectCardPaymentDialogComponent,
+  DirectCardPaymentDialogResult,
+} from '../direct-card-payment-dialog/direct-card-payment-dialog.component';
 
 export interface NewBookingDialogData {
   userId: string;
@@ -54,6 +58,7 @@ export class NewBookingDialogComponent {
   private providerTaskApiService = inject(ProviderTaskApiService);
   private scheduleService = inject(ScheduleService);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
   readonly form = inject(FormBuilder).nonNullable.group({
     clientName: ['', [Validators.required, Validators.minLength(3)]],
@@ -120,8 +125,6 @@ export class NewBookingDialogComponent {
     }
 
     const raw = this.form.getRawValue();
-    this.loading = true;
-
     const parsedTaskId = Number(raw.serviceId);
     const parsedUserId = Number(this.data.userId);
     if (!Number.isInteger(parsedTaskId) || !Number.isInteger(parsedUserId)) {
@@ -134,25 +137,19 @@ export class NewBookingDialogComponent {
       return;
     }
 
-    this.bookingApiService
-      .createBooking$({
-        taskId: parsedTaskId,
-        userId: parsedUserId,
-        scheduledDate: raw.slot,
-        paymentMethod: raw.paymentMethod,
-      })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.loading = false;
-          this.dialogRef.close(true);
-        },
-        error: (error: unknown) => {
-          this.loading = false;
-          const message = error instanceof Error ? error.message : 'Nao foi possivel concluir o agendamento.';
-          this.snackBar.open(message, 'Fechar', { duration: 3500 });
-        },
-      });
+    if (raw.paymentMethod === 'direct') {
+      this.openDirectPaymentDialog(parsedTaskId)
+        .pipe(take(1), takeUntilDestroyed(this.destroyRef))
+        .subscribe((cardPayment) => {
+          if (!cardPayment) {
+            return;
+          }
+          this.createBookingRequest(parsedTaskId, parsedUserId, raw.slot, raw.paymentMethod);
+        });
+      return;
+    }
+
+    this.createBookingRequest(parsedTaskId, parsedUserId, raw.slot, raw.paymentMethod);
   }
 
   isPaymentMethodSelected(method: BookingPaymentMethod): boolean {
@@ -169,7 +166,68 @@ export class NewBookingDialogComponent {
       : 'Pagamento direto no cartao de credito.';
   }
 
+  get submitLabel(): string {
+    if (this.loading) {
+      return 'Processando...';
+    }
+    return this.form.controls.paymentMethod.value === 'direct'
+      ? 'Comprar'
+      : 'Confirmar e pagar';
+  }
+
   private currencyPipe = inject(CurrencyPipe);
+
+  private createBookingRequest(
+    taskId: number,
+    userId: number,
+    scheduledDate: string,
+    paymentMethod: BookingPaymentMethod
+  ): void {
+    this.loading = true;
+    this.bookingApiService
+      .createBooking$({
+        taskId,
+        userId,
+        scheduledDate,
+        paymentMethod,
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.loading = false;
+          this.dialogRef.close(true);
+        },
+        error: (error: unknown) => {
+          this.loading = false;
+          const message = error instanceof Error ? error.message : 'Nao foi possivel concluir o agendamento.';
+          this.snackBar.open(message, 'Fechar', { duration: 3500 });
+        },
+      });
+  }
+
+  private openDirectPaymentDialog(taskId: number) {
+    return this.providerTaskApiService.getProviderTasks$().pipe(
+      take(1),
+      map((tasks) => tasks.find((task) => Number(task.id) === taskId)),
+      map((task) => {
+        const dialogRef = this.dialog.open<
+          DirectCardPaymentDialogComponent,
+          { amount: number; serviceLabel?: string },
+          DirectCardPaymentDialogResult | undefined
+        >(DirectCardPaymentDialogComponent, {
+          width: '460px',
+          maxWidth: '95vw',
+          autoFocus: false,
+          data: {
+            amount: Number(task?.price ?? 0),
+            serviceLabel: task?.name,
+          },
+        });
+        return dialogRef.afterClosed();
+      }),
+      switchMap((result$) => result$)
+    );
+  }
 
   private parseInputDate(value: string): Date | null {
     if (!value) {

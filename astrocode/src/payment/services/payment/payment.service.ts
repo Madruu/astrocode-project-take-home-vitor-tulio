@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Payment } from 'src/payment/entities/payment/payment.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,6 +12,16 @@ import { User } from 'src/user/entities/user/user.entity';
 import { Booking } from 'src/booking/entities/booking/booking.entity';
 import { Task } from 'src/task/entities/task/task.entity';
 import { PurchaseTaskDto } from 'src/task/dto/create-task.dto/create-task.dto';
+import {
+  MercadoPagoConfig,
+  Payment as MercadoPagoPayment,
+  Preference,
+} from 'mercadopago';
+import {
+  CreateMercadoPagoCheckoutDto,
+  CreateMercadoPagoCheckoutResponse,
+} from 'src/payment/dto/mercado-pago/create-mercado-pago-checkout.dto';
+import { ConfirmMercadoPagoPaymentDto } from 'src/payment/dto/mercado-pago/confirm-mercado-pago-payment.dto';
 
 export interface WalletSummary {
   balance: number;
@@ -37,6 +48,7 @@ export class PaymentService {
     private dataSource: DataSource,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private configService: ConfigService,
   ) {}
 
   async processBookingPayment({
@@ -121,6 +133,7 @@ export class PaymentService {
       }
       const user = await manager.findOne(User, {
         where: { id: userId },
+        lock: { mode: 'pessimistic_write' }, // Ensure atomicity of the transaction
       });
       if (!user) {
         throw new NotFoundException('User not found');
@@ -209,6 +222,185 @@ export class PaymentService {
       totalRefunds,
       pendingTransactions,
     };
+  }
+
+  async createMercadoPagoCheckout(
+    userId: number,
+    input: CreateMercadoPagoCheckoutDto,
+  ): Promise<CreateMercadoPagoCheckoutResponse> {
+    const accessToken = this.configService.get<string>('MP_ACCESS_TOKEN');
+    if (!accessToken) {
+      throw new BadRequestException(
+        'Mercado Pago is not configured. Set MP_ACCESS_TOKEN first.',
+      );
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const amount = Number(input.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException('Payment amount must be greater than 0');
+    }
+
+    const currency = input.currency?.trim() || 'BRL';
+    const paymentRecord = await this.paymentRepository.save(
+      this.paymentRepository.create({
+        amount,
+        currency,
+        type: 'DEPOSIT',
+        status: 'PENDING',
+        description: 'Deposito aguardando confirmacao do Mercado Pago',
+        reference: `MP-PENDING-${user.id}-${Date.now()}`,
+        user,
+      }),
+    );
+
+    const frontUrl =
+      this.configService.get<string>('MP_FRONTEND_URL') ??
+      'http://localhost:4200/account';
+    const notificationUrl =
+      this.configService.get<string>('MP_NOTIFICATION_URL') ?? undefined;
+    const externalReference = `wallet_deposit:${paymentRecord.id}:user:${user.id}`;
+
+    const client = new MercadoPagoConfig({ accessToken });
+    const preferenceClient = new Preference(client);
+    const preference = await preferenceClient.create({
+      body: {
+        items: [
+          {
+            id: `wallet-deposit-${paymentRecord.id}`,
+            title: `Deposito carteira Astrocode - Usuario ${user.id}`,
+            quantity: 1,
+            currency_id: currency,
+            unit_price: amount,
+          },
+        ],
+        payer: {
+          email: user.email,
+        },
+        external_reference: externalReference,
+        notification_url: notificationUrl,
+        back_urls: {
+          success: `${frontUrl}?source=mercado_pago`,
+          failure: `${frontUrl}?source=mercado_pago`,
+          pending: `${frontUrl}?source=mercado_pago`,
+        },
+        auto_return: 'approved',
+      },
+    });
+
+    paymentRecord.reference = preference.id ?? paymentRecord.reference;
+    await this.paymentRepository.save(paymentRecord);
+
+    return {
+      checkoutUrl: preference.init_point ?? '',
+      sandboxCheckoutUrl: preference.sandbox_init_point ?? '',
+      paymentReference: externalReference,
+    };
+  }
+
+  async confirmMercadoPagoPayment(
+    userId: number,
+    input: ConfirmMercadoPagoPaymentDto,
+  ): Promise<Payment> {
+    const accessToken = this.configService.get<string>('MP_ACCESS_TOKEN');
+    if (!accessToken) {
+      throw new BadRequestException(
+        'Mercado Pago is not configured. Set MP_ACCESS_TOKEN first.',
+      );
+    }
+
+    if (!input.paymentId?.trim()) {
+      throw new BadRequestException('paymentId is required');
+    }
+
+    const client = new MercadoPagoConfig({ accessToken });
+    const paymentClient = new MercadoPagoPayment(client);
+    const mercadoPagoPayment = await paymentClient.get({
+      id: input.paymentId,
+    });
+
+    const status = mercadoPagoPayment.status?.toLowerCase();
+    if (status !== 'approved') {
+      throw new BadRequestException(
+        `Mercado Pago payment is not approved (status: ${status ?? 'unknown'})`,
+      );
+    }
+
+    const externalReference =
+      mercadoPagoPayment.external_reference ?? input.externalReference;
+    if (!externalReference) {
+      throw new BadRequestException(
+        'Unable to confirm payment without external reference',
+      );
+    }
+
+    const referenceParts = externalReference.split(':');
+    const paymentRecordId = Number(referenceParts[1]);
+    const paymentUserId = Number(referenceParts[3]);
+    if (
+      !Number.isInteger(paymentRecordId) ||
+      !Number.isInteger(paymentUserId)
+    ) {
+      throw new BadRequestException('Invalid external reference');
+    }
+    if (paymentUserId !== userId) {
+      throw new BadRequestException(
+        'Payment does not belong to authenticated user',
+      );
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const paymentRecord = await manager.findOne(Payment, {
+        where: { id: paymentRecordId },
+        relations: ['user'],
+      });
+
+      if (!paymentRecord) {
+        throw new NotFoundException('Pending payment not found');
+      }
+      if (!paymentRecord.user || paymentRecord.user.id !== userId) {
+        throw new BadRequestException(
+          'Pending payment does not belong to authenticated user',
+        );
+      }
+      if (paymentRecord.status === 'COMPLETED') {
+        return paymentRecord;
+      }
+
+      const user = await manager.findOne(User, {
+        where: { id: userId },
+      });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const currentBalance = Number(user.balance);
+      const depositAmount = Number(paymentRecord.amount);
+      if (!Number.isFinite(currentBalance) || !Number.isFinite(depositAmount)) {
+        throw new BadRequestException('Invalid balance or payment amount');
+      }
+
+      const newBalance = currentBalance + depositAmount;
+      if (newBalance > 1000000) {
+        throw new BadRequestException('User balance cannot exceed 1000000');
+      }
+
+      user.balance = newBalance;
+      await manager.save(user);
+
+      paymentRecord.status = 'COMPLETED';
+      paymentRecord.reference =
+        mercadoPagoPayment.id?.toString() ?? paymentRecord.reference;
+      paymentRecord.description = 'Deposito confirmado via Mercado Pago';
+      return manager.save(paymentRecord);
+    });
   }
 
   async purchaseTask(purchaseTaskDto: PurchaseTaskDto): Promise<Booking> {

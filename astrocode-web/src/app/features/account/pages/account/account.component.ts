@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
@@ -44,12 +44,17 @@ export class AccountComponent {
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   readonly user$ = this.authService.currentUser$;
   readonly walletSummary$: Observable<WalletSummary> = this.walletApiService.getWalletSummary$();
   readonly recentTransactions$: Observable<WalletTransaction[]> = this.walletApiService
     .getTransactions$()
     .pipe(map((transactions) => transactions.slice(0, 3)));
+
+  constructor() {
+    this.handleMercadoPagoReturn();
+  }
 
   getWalletBalance(summary: WalletSummary | null): number {
     return Number(summary?.balance ?? 0);
@@ -106,16 +111,69 @@ export class AccountComponent {
         }
 
         this.walletApiService
-          .deposit$(result.amount)
+          .createMercadoPagoCheckout$(result.amount)
+          .pipe(take(1))
+          .subscribe({
+            next: (checkout) => {
+              const checkoutUrl = checkout.sandboxCheckoutUrl || checkout.checkoutUrl;
+              if (!checkoutUrl) {
+                this.snackBar.open('Nao foi possivel iniciar checkout no Mercado Pago.', 'Fechar', {
+                  duration: 3200,
+                });
+                return;
+              }
+              this.snackBar.open('Redirecionando para o checkout do Mercado Pago...', 'Fechar', {
+                duration: 2500,
+              });
+              globalThis.location.href = checkoutUrl;
+            },
+            error: (error: unknown) => {
+              const message = error instanceof Error ? error.message : 'Erro ao iniciar checkout.';
+              this.snackBar.open(message, 'Fechar', { duration: 3200 });
+            },
+          });
+      });
+  }
+
+  private handleMercadoPagoReturn(): void {
+    this.route.queryParamMap
+      .pipe(take(1))
+      .subscribe((params) => {
+        if (params.get('source') !== 'mercado_pago') {
+          return;
+        }
+
+        const paymentId = params.get('payment_id');
+        const status = params.get('status')?.toLowerCase();
+        const externalReference = params.get('external_reference') ?? undefined;
+
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: {},
+          replaceUrl: true,
+        });
+
+        if (!paymentId || status !== 'approved') {
+          this.snackBar.open('Pagamento nao aprovado. Seu saldo nao foi alterado.', 'Fechar', {
+            duration: 3500,
+          });
+          return;
+        }
+
+        this.walletApiService
+          .confirmMercadoPagoDeposit$(paymentId, externalReference)
           .pipe(take(1))
           .subscribe({
             next: () => {
               this.walletApiService.refresh();
-              this.snackBar.open('Deposito realizado com sucesso.', 'Fechar', { duration: 2600 });
+              this.snackBar.open('Deposito confirmado com sucesso!', 'Fechar', { duration: 3000 });
             },
             error: (error: unknown) => {
-              const message = error instanceof Error ? error.message : 'Erro ao realizar deposito.';
-              this.snackBar.open(message, 'Fechar', { duration: 3200 });
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : 'Pagamento aprovado, mas nao foi possivel confirmar no sistema.';
+              this.snackBar.open(message, 'Fechar', { duration: 4000 });
             },
           });
       });

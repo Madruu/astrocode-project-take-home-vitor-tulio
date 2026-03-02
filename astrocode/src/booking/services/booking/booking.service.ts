@@ -34,6 +34,7 @@ export class BookingService {
     return this.dataSource.transaction(async (manager) => {
       const user = await manager.findOne(User, {
         where: { id: bookingDto.userId },
+        lock: { mode: 'pessimistic_write' }, // Ensure atomicity of the transaction
       });
 
       const task = await manager.findOne(Task, {

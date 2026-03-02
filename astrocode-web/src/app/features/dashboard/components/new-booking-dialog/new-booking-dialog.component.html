@@ -89,6 +89,6 @@
 <mat-dialog-actions align="end">
   <button mat-stroked-button mat-dialog-close [disabled]="loading">Fechar</button>
   <button mat-flat-button color="primary" [disabled]="loading" (click)="submit()">
-    {{ loading ? 'Processando...' : 'Confirmar e pagar' }}
+    {{ submitLabel }}
   </button>
 </mat-dialog-actions>

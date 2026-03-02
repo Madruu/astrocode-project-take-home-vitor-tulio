@@ -12,6 +12,11 @@ import { Request } from 'express';
 import { Req } from '@nestjs/common';
 import { Booking } from 'src/booking/entities/booking/booking.entity';
 import { PurchaseTaskDto } from 'src/task/dto/create-task.dto/create-task.dto';
+import {
+  CreateMercadoPagoCheckoutDto,
+  CreateMercadoPagoCheckoutResponse,
+} from 'src/payment/dto/mercado-pago/create-mercado-pago-checkout.dto';
+import { ConfirmMercadoPagoPaymentDto } from 'src/payment/dto/mercado-pago/confirm-mercado-pago-payment.dto';
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
@@ -69,6 +74,46 @@ export class PaymentController {
   purchaseTask(@Body() purchaseTaskDto: PurchaseTaskDto): Promise<Booking> {
     try {
       return this.paymentService.purchaseTask(purchaseTaskDto);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post('mercado-pago/checkout')
+  @HttpCode(201)
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({
+    summary: 'Create Mercado Pago checkout preference (sandbox compatible)',
+  })
+  createMercadoPagoCheckout(
+    @Body() input: CreateMercadoPagoCheckoutDto,
+    @Req() req: Request & { user: { userId: number } },
+  ): Promise<CreateMercadoPagoCheckoutResponse> {
+    try {
+      return this.paymentService.createMercadoPagoCheckout(
+        req.user.userId,
+        input,
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post('mercado-pago/confirm')
+  @HttpCode(200)
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({
+    summary: 'Confirm Mercado Pago approved payment and credit wallet',
+  })
+  confirmMercadoPagoPayment(
+    @Body() input: ConfirmMercadoPagoPaymentDto,
+    @Req() req: Request & { user: { userId: number } },
+  ): Promise<Payment> {
+    try {
+      return this.paymentService.confirmMercadoPagoPayment(
+        req.user.userId,
+        input,
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }

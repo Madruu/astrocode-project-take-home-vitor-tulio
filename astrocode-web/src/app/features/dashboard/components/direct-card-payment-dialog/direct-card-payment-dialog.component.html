@@ -1,0 +1,50 @@
+<h2 mat-dialog-title>Pagamento com cartao</h2>
+
+<mat-dialog-content>
+  <p class="summary">
+    @if (data.serviceLabel) {
+      {{ data.serviceLabel }} - {{ data.amount | currency:'BRL':'symbol':'1.2-2' }}
+    } @else {
+      Valor: {{ data.amount | currency:'BRL':'symbol':'1.2-2' }}
+    }
+  </p>
+
+  <form [formGroup]="form" class="form-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Numero do cartao</mat-label>
+      <input matInput formControlName="cardNumber" placeholder="0000 0000 0000 0000" />
+      @if (form.controls.cardNumber.invalid && form.controls.cardNumber.touched) {
+        <mat-error>Informe um numero de cartao valido.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Nome no cartao</mat-label>
+      <input matInput formControlName="cardHolder" placeholder="NOME COMPLETO" />
+      @if (form.controls.cardHolder.invalid && form.controls.cardHolder.touched) {
+        <mat-error>Informe o nome do titular.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Validade</mat-label>
+      <input matInput formControlName="cardExpiry" placeholder="MM/AA" />
+      @if (form.controls.cardExpiry.invalid && form.controls.cardExpiry.touched) {
+        <mat-error>Use formato MM/AA.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>CVV</mat-label>
+      <input matInput formControlName="cardCvv" placeholder="000" />
+      @if (form.controls.cardCvv.invalid && form.controls.cardCvv.touched) {
+        <mat-error>Informe um CVV valido.</mat-error>
+      }
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button mat-dialog-close>Cancelar</button>
+  <button mat-flat-button color="primary" (click)="buy()">Comprar</button>
+</mat-dialog-actions>

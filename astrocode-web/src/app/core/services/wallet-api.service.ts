@@ -24,6 +24,12 @@ export interface WalletSummary {
   pendingTransactions: number;
 }
 
+export interface MercadoPagoCheckoutResponse {
+  checkoutUrl: string;
+  sandboxCheckoutUrl: string;
+  paymentReference: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -57,6 +63,29 @@ export class WalletApiService {
         amount,
         currency: 'BRL',
       });
+  }
+
+  createMercadoPagoCheckout$(amount: number): Observable<MercadoPagoCheckoutResponse> {
+    return this.http.post<MercadoPagoCheckoutResponse>(
+      buildApiUrl('/payment/mercado-pago/checkout'),
+      {
+        amount,
+        currency: 'BRL',
+      }
+    );
+  }
+
+  confirmMercadoPagoDeposit$(
+    paymentId: string,
+    externalReference?: string
+  ): Observable<WalletTransaction> {
+    return this.http.post<WalletTransaction>(
+      buildApiUrl('/payment/mercado-pago/confirm'),
+      {
+        paymentId,
+        externalReference,
+      }
+    );
   }
 
   refresh(): void {
