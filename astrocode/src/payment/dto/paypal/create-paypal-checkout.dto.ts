@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreatePayPalCheckoutDto {
   @ApiProperty({ description: 'Deposit amount to charge in checkout' })
@@ -15,6 +15,17 @@ export class CreatePayPalCheckoutDto {
   @IsOptional()
   @IsString()
   currency?: string;
+
+  @ApiProperty({
+    description: 'Checkout intent context',
+    required: false,
+    enum: ['wallet_deposit', 'external_payment'],
+    default: 'wallet_deposit',
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['wallet_deposit', 'external_payment'])
+  purpose?: 'wallet_deposit' | 'external_payment';
 }
 
 export interface CreatePayPalCheckoutResponse {

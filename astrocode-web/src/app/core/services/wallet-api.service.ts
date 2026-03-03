@@ -30,6 +30,8 @@ export interface PayPalCheckoutResponse {
   paymentReference: string;
 }
 
+export type PayPalCheckoutPurpose = 'wallet_deposit' | 'external_payment';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -65,12 +67,16 @@ export class WalletApiService {
       });
   }
 
-  createPayPalCheckout$(amount: number): Observable<PayPalCheckoutResponse> {
+  createPayPalCheckout$(
+    amount: number,
+    purpose: PayPalCheckoutPurpose = 'wallet_deposit'
+  ): Observable<PayPalCheckoutResponse> {
     return this.http.post<PayPalCheckoutResponse>(
       buildApiUrl('/payment/paypal/checkout'),
       {
         amount,
         currency: 'BRL',
+        purpose,
       }
     );
   }

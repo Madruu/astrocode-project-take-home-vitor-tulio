@@ -137,13 +137,20 @@ export class PaymentService {
     returnUrl: string;
     cancelUrl: string;
   } {
+    return this.buildPayPalCheckoutRedirectConfigWithSource('paypal');
+  }
+
+  private buildPayPalCheckoutRedirectConfigWithSource(source: string): {
+    returnUrl: string;
+    cancelUrl: string;
+  } {
     const parsedBaseUrl = this.getPayPalFrontendUrl();
     const withPayPalSource = (
       status: 'approved' | 'cancelled',
       fromWebhook = false,
     ) => {
       const callbackUrl = new URL(parsedBaseUrl.toString());
-      callbackUrl.searchParams.set('source', 'paypal');
+      callbackUrl.searchParams.set('source', source);
       callbackUrl.searchParams.set('status', status);
       if (fromWebhook) {
         callbackUrl.searchParams.set('from_webhook', 'true');
@@ -636,23 +643,31 @@ export class PaymentService {
       throw new BadRequestException('Payment amount must be greater than 0');
     }
 
+    const purpose = input.purpose ?? 'wallet_deposit';
     const currency = input.currency?.trim().toUpperCase() || 'BRL';
-    const paymentRecord = await this.paymentRepository.save(
-      this.paymentRepository.create({
-        amount,
-        currency,
-        type: 'DEPOSIT',
-        status: 'PENDING',
-        description: 'Deposito aguardando confirmacao do PayPal',
-        reference: `PAYPAL-PENDING-${user.id}-${Date.now()}`,
-        user,
-      }),
-    );
+    const isWalletDeposit = purpose === 'wallet_deposit';
+    const paymentRecord = isWalletDeposit
+      ? await this.paymentRepository.save(
+          this.paymentRepository.create({
+            amount,
+            currency,
+            type: 'DEPOSIT',
+            status: 'PENDING',
+            description: 'Deposito aguardando confirmacao do PayPal',
+            reference: `PAYPAL-PENDING-${user.id}-${Date.now()}`,
+            user,
+          }),
+        )
+      : null;
 
-    const redirectConfig = this.buildPayPalCheckoutRedirectConfig();
+    const redirectConfig = this.buildPayPalCheckoutRedirectConfigWithSource(
+      isWalletDeposit ? 'paypal' : 'paypal_external',
+    );
     const notificationUrl =
       this.configService.get<string>('PAYPAL_NOTIFICATION_URL') ?? undefined;
-    const externalReference = `wallet_deposit:${paymentRecord.id}:user:${user.id}`;
+    const externalReference = isWalletDeposit
+      ? `wallet_deposit:${paymentRecord?.id}:user:${user.id}`
+      : `external_payment:user:${user.id}:ts:${Date.now()}`;
 
     const createOrderResponse = await this.payPalRequest<{
       id?: string;
@@ -669,9 +684,13 @@ export class PaymentService {
           intent: 'CAPTURE',
           purchase_units: [
             {
-              reference_id: `wallet-deposit-${paymentRecord.id}`,
+              reference_id: isWalletDeposit
+                ? `wallet-deposit-${paymentRecord?.id}`
+                : `external-payment-user-${user.id}`,
               custom_id: externalReference,
-              description: `Deposito carteira Astrocode - Usuario ${user.id}`,
+              description: isWalletDeposit
+                ? `Deposito carteira Astrocode - Usuario ${user.id}`
+                : `Pagamento externo de servico - Usuario ${user.id}`,
               amount: {
                 currency_code: currency,
                 value: amount.toFixed(2),
@@ -692,7 +711,7 @@ export class PaymentService {
       'create_order',
       {
         userId,
-        paymentRecordId: paymentRecord.id,
+        paymentRecordId: paymentRecord?.id ?? null,
         externalReference,
       },
     );
@@ -715,8 +734,10 @@ export class PaymentService {
       );
     }
 
-    paymentRecord.reference = orderId;
-    await this.paymentRepository.save(paymentRecord);
+    if (paymentRecord) {
+      paymentRecord.reference = orderId;
+      await this.paymentRepository.save(paymentRecord);
+    }
 
     return {
       checkoutUrl,
@@ -863,6 +884,10 @@ export class PaymentService {
     }
 
     if (!externalReference) {
+      return;
+    }
+
+    if (!externalReference.startsWith('wallet_deposit:')) {
       return;
     }
 

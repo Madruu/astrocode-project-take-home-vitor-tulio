@@ -3,7 +3,7 @@ import { Component, DestroyRef, Inject, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -15,10 +15,7 @@ import { Booking } from '../../../../core/services/booking.service';
 import { ApiBooking, BookingApiService } from '../../../../core/services/booking-api.service';
 import { ProviderTask, ProviderTaskApiService } from '../../../../core/services/provider-task-api.service';
 import { ScheduleService } from '../../../../core/services/schedule.service';
-import {
-  DirectCardPaymentDialogComponent,
-  DirectCardPaymentDialogResult,
-} from '../direct-card-payment-dialog/direct-card-payment-dialog.component';
+import { WalletApiService } from '../../../../core/services/wallet-api.service';
 
 export interface NewBookingDialogData {
   userId: string;
@@ -57,8 +54,8 @@ export class NewBookingDialogComponent {
   private bookingApiService = inject(BookingApiService);
   private providerTaskApiService = inject(ProviderTaskApiService);
   private scheduleService = inject(ScheduleService);
+  private walletApiService = inject(WalletApiService);
   private snackBar = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
 
   readonly form = inject(FormBuilder).nonNullable.group({
     clientName: ['', [Validators.required, Validators.minLength(3)]],
@@ -138,14 +135,7 @@ export class NewBookingDialogComponent {
     }
 
     if (raw.paymentMethod === 'direct') {
-      this.openDirectPaymentDialog(parsedTaskId)
-        .pipe(take(1), takeUntilDestroyed(this.destroyRef))
-        .subscribe((cardPayment) => {
-          if (!cardPayment) {
-            return;
-          }
-          this.createBookingRequest(parsedTaskId, parsedUserId, raw.slot, raw.paymentMethod);
-        });
+      this.redirectDirectPaymentToPayPal(parsedTaskId);
       return;
     }
 
@@ -163,7 +153,7 @@ export class NewBookingDialogComponent {
   get paymentMethodLabel(): string {
     return this.form.controls.paymentMethod.value === 'wallet'
       ? 'Pagamento pela carteira do app (saldo).'
-      : 'Pagamento direto no cartao de credito.';
+      : 'Pagamento direto via checkout do PayPal.';
   }
 
   get submitLabel(): string {
@@ -171,7 +161,7 @@ export class NewBookingDialogComponent {
       return 'Processando...';
     }
     return this.form.controls.paymentMethod.value === 'direct'
-      ? 'Comprar'
+      ? 'Ir para PayPal'
       : 'Confirmar e pagar';
   }
 
@@ -205,28 +195,54 @@ export class NewBookingDialogComponent {
       });
   }
 
-  private openDirectPaymentDialog(taskId: number) {
-    return this.providerTaskApiService.getProviderTasks$().pipe(
-      take(1),
-      map((tasks) => tasks.find((task) => Number(task.id) === taskId)),
-      map((task) => {
-        const dialogRef = this.dialog.open<
-          DirectCardPaymentDialogComponent,
-          { amount: number; serviceLabel?: string },
-          DirectCardPaymentDialogResult | undefined
-        >(DirectCardPaymentDialogComponent, {
-          width: '460px',
-          maxWidth: '95vw',
-          autoFocus: false,
-          data: {
-            amount: Number(task?.price ?? 0),
-            serviceLabel: task?.name,
-          },
-        });
-        return dialogRef.afterClosed();
-      }),
-      switchMap((result$) => result$)
-    );
+  private redirectDirectPaymentToPayPal(taskId: number): void {
+    this.loading = true;
+    this.providerTaskApiService
+      .getProviderTasks$()
+      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (tasks) => {
+          const task = tasks.find((item) => Number(item.id) === taskId);
+          const amount = Number(task?.price ?? 0);
+          if (!Number.isFinite(amount) || amount <= 0) {
+            this.loading = false;
+            this.snackBar.open('Servico invalido para checkout no PayPal.', 'Fechar', {
+              duration: 3500,
+            });
+            return;
+          }
+
+          this.walletApiService
+            .createPayPalCheckout$(amount, 'external_payment')
+            .pipe(take(1), takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              next: (checkout) => {
+                this.loading = false;
+                if (!checkout.checkoutUrl) {
+                  this.snackBar.open('Nao foi possivel iniciar checkout no PayPal.', 'Fechar', {
+                    duration: 3500,
+                  });
+                  return;
+                }
+                this.snackBar.open('Redirecionando para o PayPal...', 'Fechar', {
+                  duration: 2200,
+                });
+                globalThis.location.href = checkout.checkoutUrl;
+              },
+              error: (error: unknown) => {
+                this.loading = false;
+                const message = error instanceof Error ? error.message : 'Erro ao iniciar checkout.';
+                this.snackBar.open(message, 'Fechar', { duration: 3500 });
+              },
+            });
+        },
+        error: () => {
+          this.loading = false;
+          this.snackBar.open('Nao foi possivel carregar o servico selecionado.', 'Fechar', {
+            duration: 3500,
+          });
+        },
+      });
   }
 
   private parseInputDate(value: string): Date | null {
