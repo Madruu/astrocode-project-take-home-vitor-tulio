@@ -17,7 +17,7 @@ import {
 import { AuthService } from '../../../auth/services/auth.service';
 
 type TransactionType = 'payment' | 'refund' | 'deposit';
-type TransactionStatus = 'completed' | 'pending';
+type TransactionStatus = 'completed' | 'pending' | 'failed';
 
 interface WalletTransactionRow {
   id: string;
@@ -112,7 +112,12 @@ export class AccountTransactionsComponent {
       id: String(transaction.id),
       description: transaction.description ?? this.getDefaultDescription(transaction.type),
       type,
-      status: transaction.status === 'PENDING' ? 'pending' : 'completed',
+      status:
+        transaction.status === 'PENDING'
+          ? 'pending'
+          : transaction.status === 'FAILED'
+            ? 'failed'
+            : 'completed',
       amount: Number(transaction.amount),
       createdAt: transaction.createdAt,
       reference: transaction.reference ?? `TX-${transaction.id}`,

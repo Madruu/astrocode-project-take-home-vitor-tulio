@@ -1,14 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-export class ConfirmMercadoPagoPaymentDto {
-  @ApiProperty({ description: 'Mercado Pago payment id from success redirect' })
+export class ConfirmPayPalPaymentDto {
+  @ApiProperty({ description: 'PayPal order id from success redirect' })
   @IsString()
   @IsNotEmpty()
-  paymentId: string;
+  orderId: string;
 
   @ApiProperty({
-    description: 'Optional external reference sent by Mercado Pago',
+    description: 'Optional external reference sent by PayPal custom_id',
     required: false,
   })
   @IsOptional()

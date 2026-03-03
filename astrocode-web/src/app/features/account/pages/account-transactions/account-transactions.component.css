@@ -209,6 +209,11 @@ td {
   color: #92400e;
 }
 
+.status.failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .negative {
   color: #b91c1c;
   font-weight: 600;

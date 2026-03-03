@@ -37,17 +37,9 @@ export class AddBalanceDialogComponent {
   readonly maxAmount = 10000;
 
   readonly form = this.fb.group({
-    amount: [0, [Validators.required, Validators.min(this.minAmount), Validators.max(this.maxAmount)]],
+    amount: [this.minAmount, [Validators.required, Validators.min(this.minAmount), Validators.max(this.maxAmount)]],
     paymentMethod: ['credit' as PaymentMethod, [Validators.required]],
-    cardNumber: [''],
-    cardHolder: [''],
-    cardExpiry: [''],
-    cardCvv: [''],
   });
-
-  constructor() {
-    this.applyCardValidators('credit');
-  }
 
   isMethodSelected(method: PaymentMethod): boolean {
     return this.form.controls.paymentMethod.value === method;
@@ -55,12 +47,7 @@ export class AddBalanceDialogComponent {
 
   setPaymentMethod(method: PaymentMethod): void {
     this.form.controls.paymentMethod.setValue(method);
-    this.applyCardValidators(method);
-  }
-
-  get requiresCardData(): boolean {
-    const method = this.form.controls.paymentMethod.value;
-    return method === 'credit' || method === 'debit';
+    this.submit();
   }
 
   submit(): void {
@@ -72,22 +59,5 @@ export class AddBalanceDialogComponent {
     const amount = Number(this.form.controls.amount.value ?? 0);
     const paymentMethod = this.form.controls.paymentMethod.value as PaymentMethod;
     this.dialogRef.close({ amount, paymentMethod });
-  }
-
-  private applyCardValidators(method: PaymentMethod): void {
-    const cardValidators =
-      method === 'credit' || method === 'debit'
-        ? [Validators.required, Validators.minLength(3)]
-        : [];
-
-    this.form.controls.cardNumber.setValidators(cardValidators);
-    this.form.controls.cardHolder.setValidators(cardValidators);
-    this.form.controls.cardExpiry.setValidators(cardValidators);
-    this.form.controls.cardCvv.setValidators(cardValidators);
-
-    this.form.controls.cardNumber.updateValueAndValidity();
-    this.form.controls.cardHolder.updateValueAndValidity();
-    this.form.controls.cardExpiry.updateValueAndValidity();
-    this.form.controls.cardCvv.updateValueAndValidity();
   }
 }

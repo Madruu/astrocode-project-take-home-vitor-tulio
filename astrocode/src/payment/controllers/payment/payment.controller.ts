@@ -13,10 +13,10 @@ import { Req } from '@nestjs/common';
 import { Booking } from 'src/booking/entities/booking/booking.entity';
 import { PurchaseTaskDto } from 'src/task/dto/create-task.dto/create-task.dto';
 import {
-  CreateMercadoPagoCheckoutDto,
-  CreateMercadoPagoCheckoutResponse,
-} from 'src/payment/dto/mercado-pago/create-mercado-pago-checkout.dto';
-import { ConfirmMercadoPagoPaymentDto } from 'src/payment/dto/mercado-pago/confirm-mercado-pago-payment.dto';
+  CreatePayPalCheckoutDto,
+  CreatePayPalCheckoutResponse,
+} from 'src/payment/dto/paypal/create-paypal-checkout.dto';
+import { ConfirmPayPalPaymentDto } from 'src/payment/dto/paypal/confirm-paypal-payment.dto';
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
@@ -79,41 +79,55 @@ export class PaymentController {
     }
   }
 
-  @Post('mercado-pago/checkout')
+  @Post('paypal/checkout')
   @HttpCode(201)
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({
-    summary: 'Create Mercado Pago checkout preference (sandbox compatible)',
+    summary: 'Create PayPal checkout order (sandbox compatible)',
   })
-  createMercadoPagoCheckout(
-    @Body() input: CreateMercadoPagoCheckoutDto,
+  createPayPalCheckout(
+    @Body() input: CreatePayPalCheckoutDto,
     @Req() req: Request & { user: { userId: number } },
-  ): Promise<CreateMercadoPagoCheckoutResponse> {
+  ): Promise<CreatePayPalCheckoutResponse> {
     try {
-      return this.paymentService.createMercadoPagoCheckout(
-        req.user.userId,
-        input,
-      );
+      return this.paymentService.createPayPalCheckout(req.user.userId, input);
     } catch (error) {
       throw new BadRequestException(error.message);
     }
   }
 
-  @Post('mercado-pago/confirm')
+  @Post('paypal/confirm')
   @HttpCode(200)
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({
-    summary: 'Confirm Mercado Pago approved payment and credit wallet',
+    summary: 'Capture PayPal approved order and credit wallet',
   })
-  confirmMercadoPagoPayment(
-    @Body() input: ConfirmMercadoPagoPaymentDto,
+  confirmPayPalPayment(
+    @Body() input: ConfirmPayPalPaymentDto,
     @Req() req: Request & { user: { userId: number } },
   ): Promise<Payment> {
     try {
-      return this.paymentService.confirmMercadoPagoPayment(
-        req.user.userId,
-        input,
-      );
+      return this.paymentService.confirmPayPalPayment(req.user.userId, input);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post('paypal/webhook')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Receive PayPal webhook notifications',
+  })
+  async handlePayPalWebhook(
+    @Req() req: Request & { headers: Record<string, unknown>; query: Record<string, unknown>; body: Record<string, unknown> },
+  ): Promise<{ received: true }> {
+    try {
+      await this.paymentService.handlePayPalWebhook({
+        headers: req.headers,
+        query: req.query as Record<string, unknown>,
+        body: req.body as Record<string, unknown>,
+      });
+      return { received: true };
     } catch (error) {
       throw new BadRequestException(error.message);
     }

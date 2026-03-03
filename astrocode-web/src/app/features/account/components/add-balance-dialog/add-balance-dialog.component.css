@@ -87,38 +87,15 @@ mat-dialog-content {
   color: #0f766e;
 }
 
-.card-data {
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  padding: 0.85rem;
-}
-
-.card-data h3 {
-  margin: 0 0 0.55rem;
-  color: #1e293b;
-  font-size: 1.2rem;
-}
-
-.card-data mat-form-field {
-  width: 100%;
-}
-
-.two-cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.65rem;
-}
-
 .dialog-actions {
   padding: 0.8rem 1.1rem 1rem !important;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.65rem;
 }
 
 .dialog-actions button {
-  flex: 1;
+  min-width: 8rem;
   border-radius: 8px;
 }
 
@@ -128,25 +105,16 @@ mat-dialog-content {
   color: #1e293b !important;
 }
 
-.confirm-btn {
-  color: #ffffff !important;
-  background: linear-gradient(90deg, #38a3a5, #22577a) !important;
-}
-
-.confirm-btn mat-icon {
-  margin-right: 0.25rem;
-}
-
 @media (max-width: 640px) {
   .methods-grid {
     grid-template-columns: 1fr;
   }
 
-  .two-cols {
-    grid-template-columns: 1fr;
+  .dialog-actions {
+    justify-content: stretch;
   }
 
-  .dialog-actions {
-    flex-direction: column;
+  .dialog-actions button {
+    width: 100%;
   }
 }

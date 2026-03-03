@@ -2,7 +2,7 @@ import { User } from 'src/user/entities/user/user.entity';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 
 export type PaymentType = 'DEPOSIT' | 'BOOKING_CHARGE' | 'BOOKING_REFUND';
-export type PaymentStatus = 'COMPLETED' | 'PENDING';
+export type PaymentStatus = 'COMPLETED' | 'PENDING' | 'FAILED';
 
 const numericTransformer = {
   to: (value: number) => value,

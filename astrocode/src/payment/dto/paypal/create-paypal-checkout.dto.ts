@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
-export class CreateMercadoPagoCheckoutDto {
+export class CreatePayPalCheckoutDto {
   @ApiProperty({ description: 'Deposit amount to charge in checkout' })
   @IsNumber()
   @Min(0.01)
@@ -17,8 +17,8 @@ export class CreateMercadoPagoCheckoutDto {
   currency?: string;
 }
 
-export interface CreateMercadoPagoCheckoutResponse {
+export interface CreatePayPalCheckoutResponse {
   checkoutUrl: string;
-  sandboxCheckoutUrl: string;
+  orderId: string;
   paymentReference: string;
 }

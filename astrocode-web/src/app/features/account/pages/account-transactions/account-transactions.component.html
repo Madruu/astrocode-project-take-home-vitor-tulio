@@ -128,8 +128,18 @@
                       </span>
                     </td>
                     <td>
-                      <span class="status" [class.pending]="transaction.status === 'pending'">
-                        {{ transaction.status === 'completed' ? 'Concluida' : 'Pendente' }}
+                      <span
+                        class="status"
+                        [class.pending]="transaction.status === 'pending'"
+                        [class.failed]="transaction.status === 'failed'"
+                      >
+                        {{
+                          transaction.status === 'completed'
+                            ? 'Concluida'
+                            : transaction.status === 'pending'
+                              ? 'Pendente'
+                              : 'Falhou'
+                        }}
                       </span>
                     </td>
                     <td>{{ transaction.reference }}</td>

@@ -53,7 +53,7 @@ export class AccountComponent {
     .pipe(map((transactions) => transactions.slice(0, 3)));
 
   constructor() {
-    this.handleMercadoPagoReturn();
+    this.handlePayPalReturn();
   }
 
   getWalletBalance(summary: WalletSummary | null): number {
@@ -110,41 +110,19 @@ export class AccountComponent {
           return;
         }
 
-        if (result.paymentMethod === 'credit' || result.paymentMethod === 'debit') {
-          this.walletApiService
-            .deposit$(result.amount)
-            .pipe(take(1))
-            .subscribe({
-              next: () => {
-                this.walletApiService.refresh();
-                this.snackBar.open('Pagamento com cartao confirmado no modo de teste.', 'Fechar', {
-                  duration: 3200,
-                });
-              },
-              error: (error: unknown) => {
-                const message =
-                  error instanceof Error
-                    ? error.message
-                    : 'Nao foi possivel processar o pagamento com cartao.';
-                this.snackBar.open(message, 'Fechar', { duration: 3500 });
-              },
-            });
-          return;
-        }
-
         this.walletApiService
-          .createMercadoPagoCheckout$(result.amount)
+          .createPayPalCheckout$(result.amount)
           .pipe(take(1))
           .subscribe({
             next: (checkout) => {
-              const checkoutUrl = checkout.sandboxCheckoutUrl || checkout.checkoutUrl;
+              const checkoutUrl = checkout.checkoutUrl;
               if (!checkoutUrl) {
-                this.snackBar.open('Nao foi possivel iniciar checkout no Mercado Pago.', 'Fechar', {
+                this.snackBar.open('Nao foi possivel iniciar checkout no PayPal.', 'Fechar', {
                   duration: 3200,
                 });
                 return;
               }
-              this.snackBar.open('Redirecionando para o checkout do Mercado Pago...', 'Fechar', {
+              this.snackBar.open('Redirecionando para o checkout do PayPal...', 'Fechar', {
                 duration: 2500,
               });
               globalThis.location.href = checkoutUrl;
@@ -157,15 +135,15 @@ export class AccountComponent {
       });
   }
 
-  private handleMercadoPagoReturn(): void {
+  private handlePayPalReturn(): void {
     this.route.queryParamMap
       .pipe(take(1))
       .subscribe((params) => {
-        if (params.get('source') !== 'mercado_pago') {
+        if (params.get('source') !== 'paypal') {
           return;
         }
 
-        const paymentId = params.get('payment_id');
+        const orderId = params.get('token');
         const status = params.get('status')?.toLowerCase();
         const externalReference = params.get('external_reference') ?? undefined;
 
@@ -175,22 +153,36 @@ export class AccountComponent {
           replaceUrl: true,
         });
 
-        if (!paymentId || status !== 'approved') {
+        if (!orderId) {
           this.snackBar.open('Pagamento nao aprovado. Seu saldo nao foi alterado.', 'Fechar', {
             duration: 3500,
           });
+          this.walletApiService.refresh();
           return;
         }
 
         this.walletApiService
-          .confirmMercadoPagoDeposit$(paymentId, externalReference)
+          .confirmPayPalDeposit$(orderId, externalReference)
           .pipe(take(1))
           .subscribe({
-            next: () => {
+            next: (transaction) => {
               this.walletApiService.refresh();
-              this.snackBar.open('Deposito confirmado com sucesso!', 'Fechar', { duration: 3000 });
+              if (transaction.status === 'COMPLETED') {
+                this.snackBar.open('Deposito confirmado com sucesso!', 'Fechar', { duration: 3000 });
+                return;
+              }
+              this.snackBar.open('Pagamento nao aprovado. Seu saldo nao foi alterado.', 'Fechar', {
+                duration: 3500,
+              });
             },
             error: (error: unknown) => {
+              this.walletApiService.refresh();
+              if (status && status !== 'approved') {
+                this.snackBar.open('Pagamento nao aprovado. Seu saldo nao foi alterado.', 'Fechar', {
+                  duration: 3500,
+                });
+                return;
+              }
               const message =
                 error instanceof Error
                   ? error.message

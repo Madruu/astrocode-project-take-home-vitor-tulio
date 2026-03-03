@@ -9,7 +9,7 @@ export interface WalletTransaction {
   amount: number;
   currency: string;
   type: 'DEPOSIT' | 'BOOKING_CHARGE' | 'BOOKING_REFUND';
-  status: 'COMPLETED' | 'PENDING';
+  status: 'COMPLETED' | 'PENDING' | 'FAILED';
   reference?: string | null;
   description?: string | null;
   createdAt: string;
@@ -24,9 +24,9 @@ export interface WalletSummary {
   pendingTransactions: number;
 }
 
-export interface MercadoPagoCheckoutResponse {
+export interface PayPalCheckoutResponse {
   checkoutUrl: string;
-  sandboxCheckoutUrl: string;
+  orderId: string;
   paymentReference: string;
 }
 
@@ -65,9 +65,9 @@ export class WalletApiService {
       });
   }
 
-  createMercadoPagoCheckout$(amount: number): Observable<MercadoPagoCheckoutResponse> {
-    return this.http.post<MercadoPagoCheckoutResponse>(
-      buildApiUrl('/payment/mercado-pago/checkout'),
+  createPayPalCheckout$(amount: number): Observable<PayPalCheckoutResponse> {
+    return this.http.post<PayPalCheckoutResponse>(
+      buildApiUrl('/payment/paypal/checkout'),
       {
         amount,
         currency: 'BRL',
@@ -75,14 +75,14 @@ export class WalletApiService {
     );
   }
 
-  confirmMercadoPagoDeposit$(
-    paymentId: string,
+  confirmPayPalDeposit$(
+    orderId: string,
     externalReference?: string
   ): Observable<WalletTransaction> {
     return this.http.post<WalletTransaction>(
-      buildApiUrl('/payment/mercado-pago/confirm'),
+      buildApiUrl('/payment/paypal/confirm'),
       {
-        paymentId,
+        orderId,
         externalReference,
       }
     );
