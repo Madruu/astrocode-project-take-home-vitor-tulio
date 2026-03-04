@@ -9,6 +9,6 @@ export function buildApiUrl(path: string): string {
   if (!path.startsWith('/')) {
     throw new Error('API path must start with "/"');
   }
-
-  return `${API_BASE_URL}${path}`;
+  const base = API_BASE_URL.replace(/\/$/, '');
+  return `${base}${path}`;
 }
