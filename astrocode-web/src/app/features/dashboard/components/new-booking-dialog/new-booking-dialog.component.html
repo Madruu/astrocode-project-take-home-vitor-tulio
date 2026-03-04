@@ -1,7 +1,7 @@
 <h2 mat-dialog-title>Novo agendamento</h2>
 
 <mat-dialog-content>
-  <form [formGroup]="form" class="form-grid">
+  <form [formGroup]="form" class="form-grid" novalidate>
     <mat-form-field appearance="outline">
       <mat-label>Nome do cliente</mat-label>
       <input matInput formControlName="clientName" />
@@ -46,7 +46,7 @@
 
     <mat-form-field appearance="outline">
       <mat-label>Horario disponivel</mat-label>
-      <mat-select formControlName="slot" [disabled]="!form.controls.date.value || !form.controls.serviceId.value">
+      <mat-select formControlName="slot" [disabled]="!form.controls.serviceId.value || (!form.controls.date.value && !hasCachedSlots)">
         @if (availableSlots$ | async; as slots) {
           @for (slot of slots; track slot.iso) {
             <mat-option [value]="slot.iso">{{ slot.label }}</mat-option>

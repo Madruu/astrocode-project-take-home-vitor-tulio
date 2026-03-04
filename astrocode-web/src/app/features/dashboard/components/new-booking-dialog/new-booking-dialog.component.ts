@@ -9,7 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { catchError, combineLatest, debounceTime, map, merge, of, startWith, switchMap, take, timer } from 'rxjs';
+import { BehaviorSubject, catchError, combineLatest, debounceTime, map, merge, of, startWith, switchMap, take, timer } from 'rxjs';
 
 import { Booking } from '../../../../core/services/booking.service';
 import { BookingApiService } from '../../../../core/services/booking-api.service';
@@ -67,35 +67,13 @@ export class NewBookingDialogComponent {
   });
 
   readonly serviceOptions$ = this.providerTaskApiService.getProviderTasks$().pipe(catchError(() => of([])));
-  readonly availableSlots$ = combineLatest([
-    this.form.controls.date.valueChanges.pipe(
-      startWith(this.form.controls.date.value),
-      debounceTime(400),
-    ),
-    merge(
-      this.form.controls.serviceId.valueChanges.pipe(startWith(this.form.controls.serviceId.value)),
-      timer(100).pipe(map(() => this.form.getRawValue().serviceId)),
-    ),
-  ]).pipe(
-    map(([dateValue, serviceIdValue]) => ({
-      date: this.parseInputDate(dateValue),
-      taskId: Number(serviceIdValue),
-    })),
-    switchMap(({ date, taskId }) => {
-      if (!date || !Number.isInteger(taskId) || taskId <= 0) {
-        return of([] as SlotOption[]);
-      }
-      return this.scheduleService.getAvailableSlots$(taskId, date).pipe(
-        map((slots) =>
-          slots.map((slotIso) => ({
-            iso: slotIso,
-            label: this.datePipe.transform(slotIso, 'HH:mm') ?? '',
-          }))
-        ),
-      );
-    }),
-    catchError(() => of([]))
-  );
+
+  private slotsCache = new BehaviorSubject<SlotOption[]>([]);
+  readonly availableSlots$ = this.slotsCache.asObservable();
+
+  get hasCachedSlots(): boolean {
+    return this.slotsCache.value.length > 0;
+  }
 
   loading = false;
 
@@ -112,6 +90,43 @@ export class NewBookingDialogComponent {
     this.form.controls.date.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.form.controls.slot.reset('');
     });
+
+    combineLatest([
+      this.form.controls.date.valueChanges.pipe(
+        startWith(this.form.controls.date.value),
+        debounceTime(400),
+      ),
+      merge(
+        this.form.controls.serviceId.valueChanges.pipe(startWith(this.form.controls.serviceId.value)),
+        timer(100).pipe(map(() => this.form.getRawValue().serviceId)),
+      ),
+    ])
+      .pipe(
+        map(([dateValue, serviceIdValue]) => ({
+          date: this.parseInputDate(dateValue),
+          taskId: Number(serviceIdValue),
+        })),
+        switchMap(({ date, taskId }) => {
+          if (!date || !Number.isInteger(taskId) || taskId <= 0) {
+            return of(null);
+          }
+          return this.scheduleService.getAvailableSlots$(taskId, date).pipe(
+            map((slots) =>
+              slots.map((slotIso) => ({
+                iso: slotIso,
+                label: this.datePipe.transform(slotIso, 'HH:mm') ?? '',
+              }))
+            ),
+            catchError(() => of([])),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((slots) => {
+        if (slots !== null) {
+          this.slotsCache.next(slots);
+        }
+      });
   }
 
   displayServiceLabel(service: ProviderTask): string {
@@ -276,6 +291,9 @@ export class NewBookingDialogComponent {
     const day = Number(dayRaw);
 
     if (!year || !month || !day) {
+      return null;
+    }
+    if (year < 2000 || year > 2100) {
       return null;
     }
 
