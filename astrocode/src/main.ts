@@ -17,7 +17,11 @@ async function bootstrap() {
         callback(null, true);
         return;
       }
-      if (allowedOrigins.has(origin) || /^https:\/\/.+\.ngrok-free\.dev$/.test(origin)) {
+      if (
+        allowedOrigins.has(origin) ||
+        /^https:\/\/.+\.ngrok-free\.dev$/.test(origin) ||
+        /^https:\/\/.+\.vercel\.app$/.test(origin)
+      ) {
         callback(null, true);
         return;
       }

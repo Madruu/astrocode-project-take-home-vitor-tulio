@@ -13,10 +13,10 @@ import { PaymentModule } from './payment/payment.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(
-      process.env.DATABASE_URL
+      (process.env.DATABASE_PUBLIC_URL ?? process.env.DATABASE_URL)
         ? {
             type: 'postgres',
-            url: process.env.DATABASE_URL,
+            url: process.env.DATABASE_PUBLIC_URL ?? process.env.DATABASE_URL,
             ssl: { rejectUnauthorized: false },
             autoLoadEntities: true,
             synchronize: true,
