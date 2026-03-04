@@ -36,7 +36,9 @@ Configure no Railway (Settings → Variables):
 
 ### 4. CORS
 
-O `main.ts` já aceita origens via `PAYPAL_FRONTEND_URL` e `MP_FRONTEND_URL`. Adicione a URL do frontend na Vercel nessas variáveis para o CORS funcionar.
+O backend aceita automaticamente `*.vercel.app`. Se usar domínio customizado ou ainda tiver erro de CORS, adicione no Railway:
+
+- **CORS_ORIGINS** – URLs separadas por vírgula, ex: `https://seu-app.vercel.app,https://www.seudominio.com`
 
 ### 5. Redeploy
 

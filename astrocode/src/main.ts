@@ -5,15 +5,25 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const extraOrigins = process.env.CORS_ORIGINS?.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean) ?? [];
   const allowedOrigins = new Set([
     'http://localhost:4200',
     'http://127.0.0.1:4200',
     process.env.PAYPAL_FRONTEND_URL?.replace(/\/account\/?$/, ''),
     process.env.MP_FRONTEND_URL?.replace(/\/account\/?$/, ''),
+    ...extraOrigins,
   ]);
+  const isRailway = !!(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_DEPLOYMENT_ID);
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) {
+        callback(null, true);
+        return;
+      }
+      // On Railway: allow all origins (Vercel preview URLs, custom domains, etc.)
+      if (isRailway) {
         callback(null, true);
         return;
       }
@@ -28,6 +38,8 @@ async function bootstrap() {
       callback(new Error(`Origin ${origin} not allowed by CORS`), false);
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
   app.useGlobalPipes(
     new ValidationPipe({
