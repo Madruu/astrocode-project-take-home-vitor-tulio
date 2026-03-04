@@ -30,6 +30,17 @@ Configure no Railway (Settings → Variables):
 
 - **PORT** – definido automaticamente pelo Railway
 - **DATABASE_URL** – injetada automaticamente quando você adiciona PostgreSQL
+
+#### PayPal (para pagamentos)
+
+| Variável | Descrição | Exemplo |
+|----------|------------|---------|
+| **PAYPAL_CLIENT_ID** | Client ID do app no [PayPal Developer](https://developer.paypal.com/) | `AbRnK...` |
+| **PAYPAL_CLIENT_SECRET** | Client Secret do app | `EJDES...` |
+| **PAYPAL_MODE** | `sandbox` (testes) ou `live` (produção) | `sandbox` |
+| **PAYPAL_FRONTEND_URL** | URL da página de conta no frontend (Vercel) | `https://seu-app.vercel.app/account` |
+| **PAYPAL_NOTIFICATION_URL** | URL do webhook (backend) | `https://astrocode-project-production.up.railway.app/payment/paypal/webhook` |
+| **PAYPAL_WEBHOOK_ID** | ID do webhook no PayPal (opcional) | `5CV99958XT248525R` |
 - **JWT_SECRET** – chave para tokens JWT
 - **PAYPAL_FRONTEND_URL** – URL do frontend na Vercel (ex: `https://astrocode-web.vercel.app`)
 - **MP_FRONTEND_URL** – mesma URL do frontend (para Mercado Pago)

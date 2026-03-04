@@ -84,14 +84,24 @@ export class ProviderPaymentsComponent {
     })
   );
 
-  readonly summary$ = this.paymentRows$.pipe(
-    map((payments) => {
+  readonly summary$ = combineLatest([this.paymentRows$, this.bookings$]).pipe(
+    map(([payments, allBookings]) => {
       const paidPayments = payments.filter((payment) => payment.paymentStatus === 'paid');
       const totalRevenue = paidPayments.reduce((total, payment) => total + payment.amount, 0);
       const pendingRevenue = payments
         .filter((payment) => payment.paymentStatus === 'pending')
         .reduce((total, payment) => total + payment.amount, 0);
-      const conversionRate = payments.length > 0 ? Math.round((paidPayments.length / payments.length) * 100) : 0;
+
+      const initiatedBookings = allBookings.filter(
+        (b) => b.status === 'confirmed' || b.status === 'cancelled'
+      );
+      const paidCountForConversion = initiatedBookings.filter(
+        (b) => !!b.paymentTransactionId
+      ).length;
+      const conversionRate =
+        initiatedBookings.length > 0
+          ? Math.round((paidCountForConversion / initiatedBookings.length) * 100)
+          : 0;
 
       return {
         totalRevenue,
@@ -99,6 +109,7 @@ export class ProviderPaymentsComponent {
         paidCount: paidPayments.length,
         totalCount: payments.length,
         conversionRate,
+        initiatedCount: initiatedBookings.length,
       };
     })
   );
