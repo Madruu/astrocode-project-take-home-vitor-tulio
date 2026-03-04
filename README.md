@@ -140,6 +140,19 @@ Token expires in `1d` by default.
 
 Base URL: `http://localhost:3000`
 
+### Swagger (OpenAPI)
+
+Interactive API documentation is available via Swagger UI when the backend is running:
+
+- **URL:** `http://localhost:3000/api/docs`
+
+The Swagger UI provides:
+
+- Browse all endpoints (Auth, Users, Tasks, Bookings, Payments)
+- Try out requests directly from the browser
+- Bearer auth support: use **Authorize** to add your JWT token for protected routes
+- Request/response schemas and validation rules
+
 ### Health
 
 - `GET /` - basic app response
