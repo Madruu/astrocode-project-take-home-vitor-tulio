@@ -1,56 +1,56 @@
-# Deploy do Backend no Railway
+# Backend Deploy on Railway
 
-## Configuração obrigatória
+## Required Configuration
 
-O erro `Cannot find module '/app/index.js'` ocorre porque o Railway está usando a raiz do projeto em vez da pasta do backend NestJS.
+The error `Cannot find module '/app/index.js'` occurs because Railway is using the project root instead of the NestJS backend folder.
 
-### 1. Defina o Root Directory
+### 1. Set the Root Directory
 
-No painel do Railway:
+In the Railway dashboard:
 
-1. Abra o seu serviço **astrocode-project**
-2. Vá em **Settings**
-3. Em **Build**, encontre **Root Directory**
-4. Defina como: **`astrocode`**
-5. Salve
+1. Open your **astrocode-project** service
+2. Go to **Settings**
+3. Under **Build**, find **Root Directory**
+4. Set it to: **`astrocode`**
+5. Save
 
-Isso faz o Railway usar a pasta do backend NestJS (onde está o `package.json` correto e o `main.ts`).
+This makes Railway use the NestJS backend folder (where the correct `package.json` and `main.ts` are located).
 
-### 2. Banco de dados PostgreSQL
+### 2. PostgreSQL Database
 
-1. No Railway, clique em **+ New** → **Database** → **PostgreSQL**
-2. O Railway cria o banco e injeta automaticamente a variável **DATABASE_URL** no seu serviço
-3. Vincule o banco ao serviço do backend (ou use a mesma variável em ambos)
+1. In Railway, click **+ New** → **Database** → **PostgreSQL**
+2. Railway creates the database and automatically injects the **DATABASE_URL** variable into your service
+3. Link the database to your backend service (or use the same variable in both)
 
-O app usa `DATABASE_URL` quando disponível (Railway) e as variáveis individuais (`DB_HOST`, etc.) para desenvolvimento local.
+The app uses `DATABASE_URL` when available (Railway) and individual variables (`DB_HOST`, etc.) for local development.
 
-### 3. Variáveis de ambiente
+### 3. Environment Variables
 
-Configure no Railway (Settings → Variables):
+Configure in Railway (Settings → Variables):
 
-- **PORT** – definido automaticamente pelo Railway
-- **DATABASE_URL** – injetada automaticamente quando você adiciona PostgreSQL
+- **PORT** – set automatically by Railway
+- **DATABASE_URL** – injected automatically when you add PostgreSQL
 
-#### PayPal (para pagamentos)
+#### PayPal (for payments)
 
-| Variável | Descrição | Exemplo |
-|----------|------------|---------|
-| **PAYPAL_CLIENT_ID** | Client ID do app no [PayPal Developer](https://developer.paypal.com/) | `AbRnK...` |
-| **PAYPAL_CLIENT_SECRET** | Client Secret do app | `EJDES...` |
-| **PAYPAL_MODE** | `sandbox` (testes) ou `live` (produção) | `sandbox` |
-| **PAYPAL_FRONTEND_URL** | URL da página de conta no frontend (Vercel) | `https://seu-app.vercel.app/account` |
-| **PAYPAL_NOTIFICATION_URL** | URL do webhook (backend) | `https://astrocode-project-production.up.railway.app/payment/paypal/webhook` |
-| **PAYPAL_WEBHOOK_ID** | ID do webhook no PayPal (opcional) | `5CV99958XT248525R` |
-- **JWT_SECRET** – chave para tokens JWT
-- **PAYPAL_FRONTEND_URL** – URL do frontend na Vercel (ex: `https://astrocode-web.vercel.app`)
-- **MP_FRONTEND_URL** – mesma URL do frontend (para Mercado Pago)
+| Variable | Description | Example |
+|----------|-------------|---------|
+| **PAYPAL_CLIENT_ID** | Client ID from your app on [PayPal Developer](https://developer.paypal.com/) | `AbRnK...` |
+| **PAYPAL_CLIENT_SECRET** | Client Secret from your app | `EJDES...` |
+| **PAYPAL_MODE** | `sandbox` (testing) or `live` (production) | `sandbox` |
+| **PAYPAL_FRONTEND_URL** | URL of the account page on the frontend (Vercel) | `https://your-app.vercel.app/account` |
+| **PAYPAL_NOTIFICATION_URL** | Webhook URL (backend) | `https://astrocode-project-production.up.railway.app/payment/paypal/webhook` |
+| **PAYPAL_WEBHOOK_ID** | Webhook ID in PayPal (optional) | `5CV99958XT248525R` |
+- **JWT_SECRET** – key for JWT tokens
+- **PAYPAL_FRONTEND_URL** – frontend URL on Vercel (e.g. `https://astrocode-web.vercel.app`)
+- **MP_FRONTEND_URL** – same frontend URL (for Mercado Pago)
 
 ### 4. CORS
 
-O backend aceita automaticamente `*.vercel.app`. Se usar domínio customizado ou ainda tiver erro de CORS, adicione no Railway:
+The backend automatically accepts `*.vercel.app`. If using a custom domain or still getting CORS errors, add in Railway:
 
-- **CORS_ORIGINS** – URLs separadas por vírgula, ex: `https://seu-app.vercel.app,https://www.seudominio.com`
+- **CORS_ORIGINS** – URLs separated by commas, e.g. `https://your-app.vercel.app,https://www.yourdomain.com`
 
 ### 5. Redeploy
 
-Depois de ajustar o Root Directory, faça um novo deploy (Deployments → Redeploy).
+After adjusting the Root Directory, trigger a new deploy (Deployments → Redeploy).

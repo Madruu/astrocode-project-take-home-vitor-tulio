@@ -1,68 +1,68 @@
-# Deploy do Frontend Astrocode (Vercel)
+# Astrocode Frontend Deploy (Vercel)
 
-Este guia explica como hospedar o frontend online na **Vercel** para cumprir o requisito: *"Hospedagem obrigatória do frontend - O projeto deve estar hosteado e acessível online"*.
+This guide explains how to host the frontend online on **Vercel** to meet the requirement: *"Mandatory frontend hosting - The project must be hosted and accessible online"*.
 
-## Pré-requisitos
+## Prerequisites
 
-- Conta na [Vercel](https://vercel.com) (gratuita)
-- Projeto no [GitHub](https://github.com) (recomendado para deploy automático)
+- Account on [Vercel](https://vercel.com) (free)
+- Project on [GitHub](https://github.com) (recommended for automatic deploy)
 
-## Opção 1: Deploy via GitHub (recomendado)
+## Option 1: Deploy via GitHub (recommended)
 
-1. **Envie o projeto para o GitHub** (se ainda não fez):
+1. **Push the project to GitHub** (if you haven't already):
    ```bash
    git add .
    git commit -m "Add Vercel deployment config"
    git push origin main
    ```
 
-2. **Acesse [vercel.com](https://vercel.com)** e faça login com sua conta GitHub.
+2. **Go to [vercel.com](https://vercel.com)** and log in with your GitHub account.
 
-3. **Importe o projeto**:
-   - Clique em "Add New..." → "Project"
-   - Selecione o repositório do projeto
-   - **Root Directory**: defina como `astrocode-web` (importante!)
-   - Clique em "Deploy"
+3. **Import the project**:
+   - Click "Add New..." → "Project"
+   - Select the project repository
+   - **Root Directory**: set to `astrocode-web` (important!)
+   - Click "Deploy"
 
-4. **Configure a variável de ambiente** (quando o backend estiver online):
-   - No painel do projeto na Vercel → Settings → Environment Variables
-   - Adicione: `API_BASE_URL` = URL do seu backend (ex: `https://seu-backend.railway.app`)
+4. **Configure the environment variable** (when the backend is online):
+   - In the project panel on Vercel → Settings → Environment Variables
+   - Add: `API_BASE_URL` = URL of your backend (e.g. `https://your-backend.railway.app`)
 
-5. **Redeploy** após adicionar a variável para aplicar as mudanças.
+5. **Redeploy** after adding the variable to apply the changes.
 
-## Opção 2: Deploy via Vercel CLI
+## Option 2: Deploy via Vercel CLI
 
-1. **Instale a Vercel CLI**:
+1. **Install the Vercel CLI**:
    ```bash
    npm i -g vercel
    ```
 
-2. **Na pasta do frontend**:
+2. **In the frontend folder**:
    ```bash
    cd astrocode-web
    vercel
    ```
 
-3. Siga as perguntas (login, nome do projeto, etc.).
+3. Follow the prompts (login, project name, etc.).
 
-4. Para configurar a URL da API:
+4. To configure the API URL:
    ```bash
    vercel env add API_BASE_URL
    ```
-   Digite a URL do backend quando solicitado.
+   Enter the backend URL when prompted.
 
-## Configuração da URL da API
+## API URL Configuration
 
-O frontend precisa da URL do backend para funcionar (login, agendamentos, etc.):
+The frontend needs the backend URL to work (login, bookings, etc.):
 
-- **Sem variável definida**: usa `http://localhost:3000` (não funcionará em produção)
-- **Com `API_BASE_URL`**: usa a URL configurada (ex: `https://astrocode-api.railway.app`)
+- **Without variable set**: uses `http://localhost:3000` (won't work in production)
+- **With `API_BASE_URL`**: uses the configured URL (e.g. `https://astrocode-api.railway.app`)
 
-**Importante**: O backend NestJS também precisa estar hospedado e com CORS configurado para aceitar requisições do domínio da Vercel.
+**Important**: The NestJS backend also needs to be hosted and have CORS configured to accept requests from the Vercel domain.
 
-## Resultado
+## Result
 
-Após o deploy, você receberá uma URL pública, por exemplo:
+After deploy, you will receive a public URL, for example:
 - `https://astrocode-web-xxx.vercel.app`
 
-O frontend estará **acessível online 24/7**, cumprindo o requisito de hospedagem obrigatória.
+The frontend will be **accessible online 24/7**, meeting the mandatory hosting requirement.
