@@ -10,10 +10,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { catchError, combineLatest, debounceTime, map, merge, of, startWith, switchMap, take, timer } from 'rxjs';
-import { HttpErrorResponse } from '@angular/common/http';
 
 import { Booking } from '../../../../core/services/booking.service';
 import { BookingApiService } from '../../../../core/services/booking-api.service';
+import { getTranslatedErrorMessage } from '../../../../core/utils/error-messages.pt';
 import { ProviderTask, ProviderTaskApiService } from '../../../../core/services/provider-task-api.service';
 import { ScheduleService } from '../../../../core/services/schedule.service';
 import { WalletApiService } from '../../../../core/services/wallet-api.service';
@@ -70,7 +70,7 @@ export class NewBookingDialogComponent {
   readonly availableSlots$ = combineLatest([
     this.form.controls.date.valueChanges.pipe(
       startWith(this.form.controls.date.value),
-      debounceTime(300),
+      debounceTime(400),
     ),
     merge(
       this.form.controls.serviceId.valueChanges.pipe(startWith(this.form.controls.serviceId.value)),
@@ -194,7 +194,7 @@ export class NewBookingDialogComponent {
         },
         error: (error: unknown) => {
           this.loading = false;
-          const message = error instanceof Error ? error.message : 'Nao foi possivel concluir o agendamento.';
+          const message = getTranslatedErrorMessage(error);
           this.snackBar.open(message, 'Fechar', { duration: 3500 });
         },
       });
@@ -251,7 +251,7 @@ export class NewBookingDialogComponent {
               },
               error: (error: unknown) => {
                 this.loading = false;
-                const message = error instanceof Error ? error.message : 'Erro ao iniciar checkout.';
+                const message = getTranslatedErrorMessage(error);
                 this.snackBar.open(message, 'Fechar', { duration: 3500 });
               },
             });

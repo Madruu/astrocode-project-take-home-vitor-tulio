@@ -16,6 +16,7 @@ import {
   ProviderTaskApiService,
 } from '../../../../core/services/provider-task-api.service';
 import { AuthService } from '../../../auth/services/auth.service';
+import { getTranslatedErrorMessage } from '../../../../core/utils/error-messages.pt';
 
 interface ProviderServiceCard {
   id: string;
@@ -143,7 +144,7 @@ export class ProviderServicesComponent implements OnInit {
         },
         error: (error: unknown) => {
           this.saving.set(false);
-          this.snackBar.open(error instanceof Error ? error.message : 'Erro ao salvar servico.', 'Fechar', {
+          this.snackBar.open(getTranslatedErrorMessage(error), 'Fechar', {
             duration: 3200,
           });
         },
@@ -166,7 +167,7 @@ export class ProviderServicesComponent implements OnInit {
         },
         error: (error: unknown) => {
           this.deletingServiceId.set(null);
-          this.snackBar.open(error instanceof Error ? error.message : 'Erro ao excluir servico.', 'Fechar', {
+          this.snackBar.open(getTranslatedErrorMessage(error), 'Fechar', {
             duration: 3200,
           });
         },
@@ -201,7 +202,7 @@ export class ProviderServicesComponent implements OnInit {
           this.servicesSubject.next(services.map((service) => this.toProviderCard(service)));
         },
         error: (error: unknown) => {
-          this.snackBar.open(error instanceof Error ? error.message : 'Erro ao carregar servicos.', 'Fechar', {
+          this.snackBar.open(getTranslatedErrorMessage(error), 'Fechar', {
             duration: 3200,
           });
         },

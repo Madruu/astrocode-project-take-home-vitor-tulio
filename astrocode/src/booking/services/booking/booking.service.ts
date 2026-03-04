@@ -267,8 +267,10 @@ export class BookingService {
       throw new NotFoundException('Task not found');
     }
 
-    const isDdMmYyyy = /^\d{2}\/\d{2}\/\d{4}$/.test(date);
-    const parts = date.split(isDdMmYyyy ? '/' : '-').map(Number);
+    // Extract date part if ISO format (e.g. 2024-03-04T14:00:00.000Z)
+    const datePart = date.includes('T') ? date.split('T')[0] : date;
+    const isDdMmYyyy = /^\d{2}\/\d{2}\/\d{4}$/.test(datePart);
+    const parts = datePart.split(isDdMmYyyy ? '/' : '-').map(Number);
     const [year, month, day] = isDdMmYyyy
       ? [parts[2], parts[1], parts[0]] // DD/MM/YYYY -> year, month, day
       : [parts[0], parts[1], parts[2]]; // YYYY-MM-DD

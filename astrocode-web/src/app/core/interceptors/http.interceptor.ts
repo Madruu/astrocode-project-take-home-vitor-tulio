@@ -5,6 +5,7 @@ import { catchError, finalize, throwError } from 'rxjs';
 
 import { AuthService } from '../../features/auth/services/auth.service';
 import { LoadingService } from '../services/loading.service';
+import { getTranslatedErrorMessage } from '../utils/error-messages.pt';
 
 export const appHttpInterceptor: HttpInterceptorFn = (request, next) => {
   const authService = inject(AuthService);
@@ -20,10 +21,7 @@ export const appHttpInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(clonedRequest).pipe(
     catchError((error: unknown) => {
-      const message =
-        error instanceof HttpErrorResponse
-          ? error.error?.message || 'Erro de comunicacao com o servidor.'
-          : 'Erro inesperado na requisicao.';
+      const message = getTranslatedErrorMessage(error);
       snackBar.open(message, 'Fechar', { duration: 3500 });
       return throwError(() => error);
     }),

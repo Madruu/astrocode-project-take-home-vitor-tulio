@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, Observable, catchError, map, tap, throwError, timeout } from 'rxjs';
 import { buildApiUrl } from '../../../core/config/api.config';
+import { getTranslatedErrorMessage } from '../../../core/utils/error-messages.pt';
 
 export interface AuthUser {
   id: string;
@@ -69,13 +70,10 @@ export class AuthService {
           }
 
           if (error instanceof HttpErrorResponse && error.status !== 0) {
-            const backendMessage =
-              typeof error.error?.message === 'string'
-                ? error.error.message
-                : 'Email ou senha invalidos.';
-            return throwError(() => new Error(backendMessage));
+            const message = getTranslatedErrorMessage(error);
+            return throwError(() => new Error(message));
           }
-          return throwError(() => new Error('Nao foi possivel autenticar com o servidor.'));
+          return throwError(() => new Error('Não foi possível autenticar com o servidor.'));
         }),
         tap((response) => {
           const user = this.toAuthUser(response, credentials.email);
@@ -98,8 +96,9 @@ export class AuthService {
         cnpj: credentials.cnpj,
       })
       .pipe(
-        catchError(() => {
-          return throwError(() => new Error('Erro ao criar conta'));
+        catchError((err: unknown) => {
+          const message = getTranslatedErrorMessage(err);
+          return throwError(() => new Error(message));
         }),
         map((response) => ({
           id: String(response.id),

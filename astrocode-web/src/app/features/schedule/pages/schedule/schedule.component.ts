@@ -10,6 +10,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { EMPTY, catchError, filter, map, switchMap, take } from 'rxjs';
 
 import { AuthService } from '../../../auth/services/auth.service';
+import { getTranslatedErrorMessage } from '../../../../core/utils/error-messages.pt';
 import { Booking, BookingService } from '../../../../core/services/booking.service';
 import { LoadingService } from '../../../../core/services/loading.service';
 import { CancelBookingReasonDialogComponent } from '../../../../shared/components/cancel-booking-reason-dialog/cancel-booking-reason-dialog.component';
@@ -85,7 +86,7 @@ export class ScheduleComponent {
         ),
         take(1),
         catchError((error: unknown) => {
-          const message = error instanceof Error ? error.message : 'Falha ao cancelar o agendamento.';
+          const message = getTranslatedErrorMessage(error);
           this.snackBar.open(message, 'Fechar', { duration: 3500 });
           return EMPTY;
         })

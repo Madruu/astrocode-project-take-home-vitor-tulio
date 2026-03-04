@@ -15,6 +15,7 @@ import { AuthService } from 'src/app/features/auth/services/auth.service';
 import { Booking } from 'src/app/core/services/booking.service';
 import { NewBookingDialogComponent } from 'src/app/features/dashboard/components/new-booking-dialog/new-booking-dialog.component';
 import { ProviderTaskApiService } from 'src/app/core/services/provider-task-api.service';
+import { getTranslatedErrorMessage } from 'src/app/core/utils/error-messages.pt';
 
 interface ServiceItem {
   id: string;
@@ -61,7 +62,7 @@ export class ServicesComponent {
     ),
     map((services) => services.sort((a, b) => a.title.localeCompare(b.title))),
     catchError((error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Erro ao carregar servicos.';
+      const message = getTranslatedErrorMessage(error);
       this.snackBar.open(message, 'Fechar', { duration: 3000 });
       return of([]);
     })

@@ -11,6 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AuthService } from '../../services/auth.service';
+import { getTranslatedErrorMessage } from '../../../../core/utils/error-messages.pt';
 
 @Component({
   selector: 'app-login',
@@ -62,7 +63,7 @@ export class LoginComponent implements OnDestroy {
         next: (user) =>
           this.router.navigate([user.accountType === 'PROVIDER' ? '/provider-dashboard' : '/dashboard']),
         error: (error: unknown) =>
-          this.errorMessage.set(error instanceof Error ? error.message : 'Email ou senha inválidos'),
+          this.errorMessage.set(getTranslatedErrorMessage(error)),
       });
   }
 

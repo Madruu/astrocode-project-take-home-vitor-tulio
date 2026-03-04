@@ -11,6 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import {MatRadioModule} from '@angular/material/radio';
 import { AuthService } from '../../services/auth.service';
+import { getTranslatedErrorMessage } from '../../../../core/utils/error-messages.pt';
 
 @Component({
   selector: 'app-signup',
@@ -83,7 +84,7 @@ export class SignupComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.loading.set(false)), takeUntil(this.destroy$))
       .subscribe({
         next: () => this.router.navigate(['/login']),
-        error: () => this.errorMessage.set('Erro ao criar conta'),
+        error: (err: unknown) => this.errorMessage.set(getTranslatedErrorMessage(err)),
       });
   }
 

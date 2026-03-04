@@ -12,6 +12,7 @@ import { map, Observable } from 'rxjs';
 import { take } from 'rxjs';
 
 import { AuthService } from '../../../auth/services/auth.service';
+import { getTranslatedErrorMessage } from '../../../../core/utils/error-messages.pt';
 import {
   WalletApiService,
   WalletSummary,
@@ -110,8 +111,7 @@ export class AccountComponent {
           },
           error: (error: unknown) => {
             this.isSavingProfile = false;
-            const message =
-              error instanceof Error ? error.message : 'Nao foi possivel atualizar o perfil.';
+            const message = getTranslatedErrorMessage(error);
             this.snackBar.open(message, 'Fechar', { duration: 3200 });
           },
         });
@@ -167,8 +167,7 @@ export class AccountComponent {
           },
           error: (error: unknown) => {
             this.isChangingPassword = false;
-            const message =
-              error instanceof Error ? error.message : 'Nao foi possivel alterar a senha.';
+            const message = getTranslatedErrorMessage(error);
             this.snackBar.open(message, 'Fechar', { duration: 3200 });
           },
         });
@@ -212,7 +211,7 @@ export class AccountComponent {
               globalThis.location.href = checkoutUrl;
             },
             error: (error: unknown) => {
-              const message = error instanceof Error ? error.message : 'Erro ao iniciar checkout.';
+              const message = getTranslatedErrorMessage(error);
               this.snackBar.open(message, 'Fechar', { duration: 3200 });
             },
           });
@@ -276,10 +275,7 @@ export class AccountComponent {
                 });
                 return;
               }
-              const message =
-                error instanceof Error
-                  ? error.message
-                  : 'Pagamento aprovado, mas nao foi possivel confirmar no sistema.';
+              const message = getTranslatedErrorMessage(error);
               this.snackBar.open(message, 'Fechar', { duration: 4000 });
             },
           });

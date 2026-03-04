@@ -4,7 +4,6 @@ import {
   IsDateString,
   IsIn,
   IsInt,
-  Matches,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -72,9 +71,8 @@ export class GetAvailableSlotsQueryDto {
   @IsInt()
   taskId: number;
 
-  @ApiProperty({ description: 'Date in DD/MM/YYYY or YYYY-MM-DD format' })
+  @ApiProperty({ description: 'Date in DD/MM/YYYY, YYYY-MM-DD, or ISO 8601 format' })
   @IsNotEmpty()
-  @IsString()
-  @Matches(/^(\d{2}\/\d{2}\/\d{4}|\d{4}-\d{2}-\d{2})$/)
+  @IsDateString()
   date: string;
 }
