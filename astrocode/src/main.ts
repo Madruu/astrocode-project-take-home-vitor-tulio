@@ -6,7 +6,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: true, // Allow any origin (reflects request origin for credentials)
+    origin: (origin, callback) => callback(null, origin ?? true),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
@@ -33,6 +33,7 @@ async function bootstrap() {
     },
   });
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = parseInt(process.env.PORT ?? '3000', 10);
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();
